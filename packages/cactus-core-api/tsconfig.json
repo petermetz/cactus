@@ -6,5 +6,5 @@
   },
   "include": [
     "./src"
-  ]
+, "../cactus-core/src/test/typescript/unit/plugin-registry"  ]
 }

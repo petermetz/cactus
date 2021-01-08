@@ -98,12 +98,10 @@ export const CACTUS_OPEN_API_JSON: OpenAPI.OpenAPIV3.Document = {
 };
 
 export async function exportToFileSystemAsJson(): Promise<void> {
+  const fnTag = "OpenApiSpec#exportToFileSystemAsJson()";
   const fs = await import("fs");
   const destination = process.argv[2] || "./cactus-openapi-spec.json";
-
   // tslint:disable-next-line: no-console
-  console.log(
-    `OpenApiSpec#exportToFileSystemAsJson() destination=${destination}`
-  );
+  console.log(`${fnTag} destination=${destination}`);
   fs.writeFileSync(destination, JSON.stringify(CACTUS_OPEN_API_JSON, null, 4));
 }

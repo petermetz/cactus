@@ -1,4 +1,7 @@
+import ReactiveMembrane from "observable-membrane";
+import { ReactiveMembraneMutationCallback } from "observable-membrane/dist/types/reactive-membrane";
 import { Optional } from "typescript-optional";
+
 import {
   ICactusPlugin,
   IPluginKeychain,
@@ -6,12 +9,20 @@ import {
   PluginAspect,
 } from "@hyperledger/cactus-core-api";
 
+import {
+  Logger,
+  LoggerProvider,
+  LogLevelDesc,
+} from "@hyperledger/cactus-common";
+
 /**
  * This interface describes the constructor options object that can be used to provide configuration parameters to
  * the `PluginRegistry` class instances.
  */
 export interface IPluginRegistryOptions {
   plugins?: ICactusPlugin[];
+  membrane?: ReactiveMembrane;
+  logLevel?: LogLevelDesc;
 }
 
 /**
@@ -23,17 +34,33 @@ export interface IPluginRegistryOptions {
  * classes in place of the interfaces currently describing the plugin architecture.
  */
 export class PluginRegistry {
+  public readonly log: Logger;
   public readonly plugins: ICactusPlugin[];
+  public readonly membrane: ReactiveMembrane;
 
   constructor(public readonly options: IPluginRegistryOptions = {}) {
-    const fnTag = `PluginRegistry#constructor()`;
+    const fnTag = "PluginRegistry#constructor()";
     if (!options) {
       throw new TypeError(`${fnTag} options falsy`);
     }
     if (options.plugins && !Array.isArray(options.plugins)) {
       throw new TypeError(`${fnTag} options.plugins truthy but non-Array`);
     }
+
     this.plugins = options.plugins || [];
+
+    const level = this.options.logLevel || "INFO";
+    const loggerOptions = { label: "plugin-registry", level };
+    this.log = LoggerProvider.getOrCreate(loggerOptions);
+
+    const valueMutated: ReactiveMembraneMutationCallback = (
+      obj: any,
+      key: PropertyKey
+    ) => {
+      this.log.debug(`ReactiveMembraneMutationCallback %o => %o`, obj, key);
+    };
+
+    this.membrane = options.membrane || new ReactiveMembrane({ valueMutated });
   }
 
   public getPlugins(): ICactusPlugin[] {
@@ -63,10 +90,17 @@ export class PluginRegistry {
   public findOneByPackageName<T extends ICactusPlugin>(
     packageName: string
   ): Optional<T> {
+
     const plugin = this.getPlugins().find(
       (p) => p.getPackageName() === packageName
     );
-    return Optional.ofNullable(plugin as T);
+
+    if (plugin) {
+      const pluginProxy = this.membrane.getReadOnlyProxy(plugin) as T;
+      return Optional.ofNullable(pluginProxy);
+    } else {
+      return Optional.empty();
+    }
   }
 
   public findManyByPackageName<T extends ICactusPlugin>(
@@ -74,14 +108,20 @@ export class PluginRegistry {
   ): T[] {
     return this.getPlugins().filter(
       (p) => p.getPackageName() === packageName
-    ) as T[];
+    )
+      .map((p) => this.membrane.getReadOnlyProxy(p)) as T[];
   }
 
   public findOneByAspect<T extends ICactusPlugin>(
     aspect: PluginAspect
   ): Optional<T> {
     const plugin = this.getPlugins().find((p) => p.getAspect() === aspect);
-    return Optional.ofNullable(plugin as T);
+    if (plugin) {
+      const pluginProxy = this.membrane.getReadOnlyProxy(plugin) as T;
+      return Optional.ofNullable(pluginProxy);
+    } else {
+      return Optional.empty();
+    }
   }
 
   public findOneByKeychainId<T extends IPluginKeychain>(keychainId: string): T {
@@ -100,7 +140,9 @@ export class PluginRegistry {
   }
 
   public findManyByAspect<T extends ICactusPlugin>(aspect: PluginAspect): T[] {
-    return this.getPlugins().filter((p) => p.getAspect() === aspect) as T[];
+    return this.getPlugins()
+      .filter((p) => p.getAspect() === aspect)
+      .map((p) => this.membrane.getReadOnlyProxy(p) as T);
   }
 
   public hasByAspect(aspect: PluginAspect): boolean {

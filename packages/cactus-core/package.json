@@ -64,6 +64,7 @@
   "dependencies": {
     "@hyperledger/cactus-common": "0.3.0",
     "@hyperledger/cactus-core-api": "0.3.0",
+    "observable-membrane": "1.0.1",
     "typescript-optional": "2.0.1"
   },
   "devDependencies": {
