@@ -59,6 +59,7 @@
     "@types/tape": "4.13.0",
     "@types/tape-promise": "4.0.1",
     "@types/uuid": "3.4.6",
+    "ava": "3.13.0",
     "buffer": "6.0.1",
     "cache-loader": "4.1.0",
     "commitizen": "4.2.2",
@@ -112,5 +113,25 @@
   "lint-staged": {
     "./**/*.{ts,js}": "prettier --write --config .prettierrc.json"
   },
+  "ava": {
+		"extensions": [
+			"ts"
+		],
+		"require": [
+			"ts-node/register"
+    ],
+    "reporter": [
+      "html",
+      "text"
+    ],
+    "sourceMap": true,
+    "instrument": true,
+    "all": true
+  },
+  "nyc": {
+		"extension": [
+			".ts"
+		]
+	},
   "dependencies": {}
 }

@@ -111,7 +111,7 @@ export class KeyConverter {
    * @param keyFormat
    */
   private validateKeyFormatValue(keyFormat: KeyFormat): void {
-    const fnTag = "KeyConverter#publicKeyAs()";
+    const fnTag = "KeyConverter#validateKeyFormatValue()";
 
     if (!this.supportedKeyFormats.some((val) => val === keyFormat)) {
       const csv =
