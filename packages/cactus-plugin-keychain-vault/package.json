@@ -12,9 +12,13 @@
     "dist/*"
   ],
   "scripts": {
+    "generate-server-grpc-bash": "docker run -it --rm --mount type=bind,src=$(pwd),dst=/local/ --user root gno2 bash",
     "generate-server-grpc": "docker run --user root --rm -v \"${PWD}:/local\" gno2 'cp /local/src/main/json/openapi.json /x.yaml && gnostic --grpc-out=/local/src/main/server-grpc/go/ /x.yaml'",
     "generate-server-grpc-mount": "docker run --user root --rm --mount type=bind,src=\"${PWD}\",dst=/local/ gno2 gnostic --grpc-out=/local/src/main/server-grpc/go/ /local/src/main/json/openapi.json",
     "generate-server-grpc2": "docker run --user \"$(id -u):$(id -g)\" --rm -v \"${PWD}:/local\" gno2 cat /local/src/main/yaml/openapi.yaml",
+
+    "generate-server-grpc3": "docker run -it --rm --mount type=bind,src=$(pwd),dst=/local/ --user root gno2 bash -c \"gnostic --time-plugins --resolve-refs --grpc-out=/local/src/main/server-grpc/go/ /local/src/main/yaml/openapi.yaml\"",
+
     "generate-sdk": "openapi-generator generate --input-spec src/main/json/openapi.json -g typescript-axios -o ./src/main/typescript/generated/openapi/typescript-axios/",
     "tsc": "tsc --project ./tsconfig.json",
     "pretsc": "npm run generate-sdk",

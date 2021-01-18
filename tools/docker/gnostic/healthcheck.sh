@@ -1,3 +1,4 @@
 #!/bin/bash
 
-gnostic --version
+protoc --version
+gnostic --help
