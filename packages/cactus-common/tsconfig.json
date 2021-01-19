@@ -2,9 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist/lib/", /* Redirect output structure to the directory. */
-    "declarationDir": "dist/types",
+    "declarationDir": "./dist/types",
   },
   "include": [
-    "./src"
+    "./src/"
   ]
 }
