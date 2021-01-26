@@ -13,6 +13,10 @@
   ],
   "scripts": {
     "generate-sdk": "openapi-generator-cli generate -i ./src/main/json/openapi.json -g typescript-axios -o ./src/main/typescript/generated/openapi/typescript-axios/",
+    "pregenerate-proto": "./node_modules/.bin/del-cli src/main/proto/gen/",
+    "generate-proto": "docker run --user \"$(id -u):$(id -g)\" --rm -v \"${PWD}../../../:/cactus/\" openapitools/openapi-generator-cli:v5.0.0 generate -i /cactus/packages/cactus-plugin-keychain-vault/src/main/json/openapi.json -g protobuf-schema --additional-properties=packageName=ctkeychainvaultsrvgrpc -o /cactus/packages/cactus-plugin-keychain-vault/src/main/proto/gen/openapi/",
+    "generate-client-grpc-web": "docker run --user \"$(id -u):$(id -g)\" --rm -v \"${PWD}../../../:/cactus/\" protoc --plugin=\"protoc-gen-grpc-web=/usr/local/bin/protoc-gen-grpc-web\" --grpc-web_out=\"import_style=typescript,mode=grpcwebtext:/cactus/packages/cactus-plugin-keychain-vault/src/main/typescript/generated/protoc/protoc-gen-grpc-web/\" --proto_path=/cactus/packages/cactus-plugin-keychain-vault/src/main/proto/gen/openapi/services --proto_path=/cactus/packages/cactus-plugin-keychain-vault/src/main/proto/gen/openapi/ models/get_keychain_entry_request.proto models/get_keychain_entry_response.proto models/set_keychain_entry_request.proto models/set_keychain_entry_response.proto default_service.proto",
+    "generate-server-grpc-go": "docker run --user \"$(id -u):$(id -g)\" --rm -v \"${PWD}../../../:/cactus/\" protoc --go_out=/cactus/packages/cactus-plugin-keychain-vault/src/server-grpc/go/ --go_opt=paths=source_relative --go-grpc_out=/cactus/packages/cactus-plugin-keychain-vault/src/server-grpc/go/ --go-grpc_opt=paths=source_relative --proto_path=/cactus/packages/cactus-plugin-keychain-vault/src/main/proto/gen/openapi/services --proto_path=/cactus/packages/cactus-plugin-keychain-vault/src/main/proto/gen/openapi/ models/get_keychain_entry_request.proto models/get_keychain_entry_response.proto models/set_keychain_entry_request.proto models/set_keychain_entry_response.proto default_service.proto",
     "tsc": "tsc --project ./tsconfig.json",
     "watch": "npm-watch",
     "pretsc": "npm run generate-sdk",
@@ -96,8 +100,10 @@
     "@hyperledger/cactus-test-tooling": "0.5.0",
     "@types/express": "4.17.8",
     "@types/express-serve-static-core": "4.17.17",
+    "@types/google-protobuf": "3.7.4",
     "@types/request": "2.48.5",
     "internal-ip": "6.2.0",
+    "del-cli": "3.0.1",
     "openapi-types": "7.2.2"
   }
 }

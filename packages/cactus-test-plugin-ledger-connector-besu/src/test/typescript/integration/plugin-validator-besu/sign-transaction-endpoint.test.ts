@@ -164,7 +164,7 @@ test(testCase, async (t: Test) => {
   const request: SignTransactionRequest = {
     keychainId,
     keychainRef,
-    transactionHash: transactionHash,
+    transactionHash,
   };
 
   const configuration = new BesuApiClientOptions({ basePath: node1Host });

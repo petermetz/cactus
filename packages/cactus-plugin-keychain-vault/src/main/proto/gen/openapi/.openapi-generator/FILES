@@ -1,0 +1,7 @@
+.openapi-generator-ignore
+README.md
+models/get_keychain_entry_request.proto
+models/get_keychain_entry_response.proto
+models/set_keychain_entry_request.proto
+models/set_keychain_entry_response.proto
+services/default_service.proto

@@ -1,3 +1,5 @@
+*/*/src/*/typescript/generated/**/*.ts
+*/*/src/*/typescript/generated/**/*.js
 
 # !packages/cactus-*/**
 # !examples/cactus-*/**
