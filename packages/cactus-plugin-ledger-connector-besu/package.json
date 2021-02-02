@@ -13,7 +13,9 @@
   ],
   "scripts": {
     "generate-sdk": "openapi-generator generate --input-spec src/main/json/openapi.json -g typescript-axios -o ./src/main/typescript/generated/openapi/typescript-axios/ --reserved-words-mappings protected=protected",
-    "pretsc": "npm run generate-sdk",
+    "pretsc": "npm-run-all generate-sdk",
+    "solc": "solcjs --bin --abi --output-dir ./src/test/resources/hello-world-contract/ --base-path ./src/test/solidity/hello-world-contract/ ./src/test/solidity/hello-world-contract/HelloWorld.sol",
+    "render-resources": "../../tools/render-resources.js ./src/test/resources/ ./src/test/json/generated/resources/",
     "tsc": "tsc --project ./tsconfig.json",
     "watch": "npm-watch",
     "webpack": "npm-run-all webpack:dev webpack:prod",
@@ -33,7 +35,10 @@
       "ignore": [
         "src/**/generated/*"
       ],
-      "extensions": ["ts", "json"],
+      "extensions": [
+        "ts",
+        "json"
+      ],
       "quiet": true,
       "verbose": false,
       "runOnChangeOnly": true
@@ -95,6 +100,7 @@
     "@hyperledger/cactus-plugin-keychain-memory": "0.3.0",
     "@hyperledger/cactus-test-tooling": "0.3.0",
     "@types/express": "4.17.8",
-    "@types/joi": "14.3.4"
+    "@types/joi": "14.3.4",
+    "solc": "0.8.1"
   }
 }

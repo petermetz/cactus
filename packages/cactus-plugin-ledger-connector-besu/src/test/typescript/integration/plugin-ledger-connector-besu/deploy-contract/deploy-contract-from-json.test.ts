@@ -11,7 +11,7 @@ import {
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import { BesuTestLedger } from "@hyperledger/cactus-test-tooling";
 import { LogLevelDesc } from "@hyperledger/cactus-common";
-import HelloWorldContractJson from "../../../../solidity/hello-world-contract/HelloWorld.json";
+import HelloWorldContractJson from "../../../../solidity/hello-world-contract/build/contracts/HelloWorld.json";
 import Web3 from "web3";
 import { PluginImportType } from "@hyperledger/cactus-core-api";
 

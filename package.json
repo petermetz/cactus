@@ -74,6 +74,7 @@
     "eslint-plugin-prettier": "3.3.1",
     "eslint-plugin-promise": "4.1.1",
     "eslint-plugin-standard": "4.0.0",
+    "fast-glob": "3.2.5",
     "git-cz": "4.7.1",
     "husky": "4.2.5",
     "inquirer": "7.1.0",
