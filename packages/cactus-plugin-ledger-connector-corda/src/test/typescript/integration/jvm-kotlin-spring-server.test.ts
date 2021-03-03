@@ -1,5 +1,6 @@
 import test, { Test } from "tape-promise/tape";
-import { v4 as internalIpV4 } from "internal-ip";
+import { v4 as uuidv4 } from "uuid";
+import internalIpV4 from "internal-ip";
 
 import {
   CordaTestLedger,
@@ -9,6 +10,7 @@ import { LogLevelDesc } from "@hyperledger/cactus-common";
 import {
   SampleCordappEnum,
   CordaConnectorContainer,
+  Containers,
 } from "@hyperledger/cactus-test-tooling";
 
 import {
@@ -19,9 +21,11 @@ import {
   InvokeContractV1Request,
   JvmTypeKind,
 } from "../../../main/typescript/generated/openapi/typescript-axios/index";
+import { IDockerNetworkOptions } from "@hyperledger/cactus-test-tooling/dist/types/main/typescript/common/containers";
 
 const testCase = "Tests are passing on the JVM side";
 const logLevel: LogLevelDesc = "TRACE";
+const healthcheckTimeoutMs = 60000;
 
 test("BEFORE " + testCase, async (t: Test) => {
   const pruning = pruneDockerAllIfGithubAction({ logLevel });
@@ -30,22 +34,48 @@ test("BEFORE " + testCase, async (t: Test) => {
 });
 
 test(testCase, async (t: Test) => {
+  const networkName = `cactus-jvm-kotlin-spring-server-test-${uuidv4()}`;
+  const networkOpts: IDockerNetworkOptions = { Name: networkName };
+  const net = await Containers.getOrCreateNetwork(networkOpts);
+
+  t.ok(net, "Created docker network truthy #1 OK");
+
+  test.onFinish(async () => {
+    t.comment(`Removing Network=${net}...`);
+    await net.network.remove();
+    t.comment(`Removed Network=${net.network.id}...`);
+  });
+
   const ledger = new CordaTestLedger({
     imageName: "hyperledger/cactus-corda-4-6-all-in-one-obligation",
     imageVersion: "2021-03-19-feat-686",
     logLevel,
+    healthcheckTimeoutMs,
+    net,
   });
   t.ok(ledger, "CordaTestLedger instantaited OK");
 
   test.onFinish(async () => {
     await ledger.stop();
     await ledger.destroy();
+    try {
+      const logBuffer = await ledger.getLogBuffer();
+      const logs = logBuffer.toString("utf-8");
+      t.comment(`[CordaAllInOne] ${logs}`);
+    } finally {
+      try {
+        await ledger.stop();
+      } finally {
+        await ledger.destroy();
+      }
+    }
   });
   const ledgerContainer = await ledger.start();
   t.ok(ledgerContainer, "CordaTestLedger container truthy post-start() OK");
 
   await ledger.logDebugPorts();
-  const partyARpcPort = await ledger.getRpcAPublicPort();
+  // const partyARpcPort = await ledger.getRpcAPublicPort();
+  const partyARpcPort = ledger.rpcPortB;
 
   const jarFiles = await ledger.pullCordappJars(
     SampleCordappEnum.ADVANCED_OBLIGATION,
@@ -83,6 +113,8 @@ test(testCase, async (t: Test) => {
     // imageName: "cccs",
     // imageVersion: "latest",
     envVars: [envVarSpringAppJson],
+    healthcheckTimeoutMs,
+    net,
   });
   t.ok(CordaConnectorContainer, "CordaConnectorContainer instantiated OK");
 

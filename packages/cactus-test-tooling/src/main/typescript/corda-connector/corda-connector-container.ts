@@ -11,7 +11,7 @@ import {
   Bools,
 } from "@hyperledger/cactus-common";
 
-import { Containers } from "../common/containers";
+import { Containers, IDockerNetworkAndInspectInfo } from "../common/containers";
 
 /*
  * Provides default options for Corda connector server
@@ -40,6 +40,8 @@ export const CORDA_CONNECTOR_OPTIONS_JOI_SCHEMA = JOI_SCHEMA;
 export interface ICordaConnectorContainerOptions {
   imageVersion?: string;
   imageName?: string;
+  net?: IDockerNetworkAndInspectInfo;
+  healthcheckTimeoutMs?: number;
   apiPort?: number;
   logLevel?: LogLevelDesc;
   envVars?: string[];
@@ -110,12 +112,16 @@ export class CordaConnectorContainer {
       await Containers.pullImage(containerNameAndTag);
     }
 
+    const NetworkMode = this.opts.net?.info.Name || "bridge";
+    this.log.debug(`NetworkMode=${NetworkMode}`);
+
     return new Promise<Container>((resolve, reject) => {
       const eventEmitter: EventEmitter = docker.run(
         containerNameAndTag,
         [],
         [],
         {
+          NetworkMode,
           ExposedPorts: {
             [`${this.apiPort}/tcp`]: {}, // REST API HTTP port
             [`9001/tcp`]: {}, // SupervisorD Web UI
@@ -143,7 +149,10 @@ export class CordaConnectorContainer {
           });
         }
         try {
-          await Containers.waitForHealthCheck(this.containerId);
+          await Containers.waitForHealthCheck(
+            this.containerId,
+            this.opts.healthcheckTimeoutMs,
+          );
           resolve(container);
         } catch (ex) {
           this.log.error(`Waiting for healthcheck to pass failed:`, ex);
@@ -151,6 +160,16 @@ export class CordaConnectorContainer {
         }
       });
     });
+  }
+
+  public async getLogBuffer(): Promise<Buffer> {
+    const container = this.getContainer();
+    const logBuffer = await container.logs({
+      follow: false,
+      stdout: true,
+      stderr: true,
+    });
+    return (logBuffer as unknown) as Buffer;
   }
 
   public async logDebugPorts(): Promise<void> {

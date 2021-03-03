@@ -6,7 +6,7 @@ import Docker, { Container, ContainerInfo } from "dockerode";
 import Joi from "joi";
 
 import { ITestLedger } from "../i-test-ledger";
-import { Containers } from "../common/containers";
+import { Containers, IDockerNetworkAndInspectInfo } from "../common/containers";
 
 import {
   LogLevelDesc,
@@ -28,6 +28,8 @@ import { ICordappJarFile } from "./cordapp-jar-file";
 export interface ICordaTestLedgerConstructorOptions {
   imageVersion?: string;
   imageName?: string;
+  net?: IDockerNetworkAndInspectInfo;
+  healthcheckTimeoutMs?: number;
   rpcPortNotary?: number;
   rpcPortA?: number;
   rpcPortB?: number;
@@ -132,6 +134,9 @@ export class CordaTestLedger implements ITestLedger {
       await Containers.pullImage(containerNameAndTag);
     }
 
+    const NetworkMode = this.opts.net?.info.Name || "bridge";
+    this.log.debug(`NetworkMode=${NetworkMode}`);
+
     return new Promise<Container>((resolve, reject) => {
       const eventEmitter: EventEmitter = docker.run(
         containerNameAndTag,
@@ -148,6 +153,7 @@ export class CordaTestLedger implements ITestLedger {
             [`${this.rpcPortC}/tcp`]: {}, // corda PartyC RPC
             "22/tcp": {}, // ssh server
           },
+          NetworkMode,
           PublishAllPorts: true,
           // TODO: this can be removed once the new docker image is published and
           // specified as the default one to be used by the tests.
@@ -183,23 +189,30 @@ export class CordaTestLedger implements ITestLedger {
             this.log.debug(`${fnTag} %o`, data.toString("utf-8"));
           });
         }
+        const info = await container.inspect();
+        this.log.debug(`ContainerInspectResult=%o`, info);
         try {
-          let isHealthy = false;
-          do {
-            const containerInfo = await this.getContainerInfo();
-            this.log.debug(`ContainerInfo.Status=%o`, containerInfo.Status);
-            this.log.debug(`ContainerInfo.State=%o`, containerInfo.State);
-            isHealthy = containerInfo.Status.endsWith("(healthy)");
-            if (!isHealthy) {
-              await new Promise((resolve2) => setTimeout(resolve2, 1000));
-            }
-          } while (!isHealthy);
+          await Containers.waitForHealthCheck(
+            this.containerId,
+            this.opts.healthcheckTimeoutMs,
+          );
           resolve(container);
         } catch (ex) {
+          this.log.error(`Waiting for healthcheck to pass failed:`, ex);
           reject(ex);
         }
       });
     });
+  }
+
+  public async getLogBuffer(): Promise<Buffer> {
+    const container = this.getContainer();
+    const logBuffer = await container.logs({
+      follow: false,
+      stdout: true,
+      stderr: true,
+    });
+    return (logBuffer as unknown) as Buffer;
   }
 
   public async logDebugPorts(): Promise<void> {

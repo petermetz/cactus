@@ -49,6 +49,26 @@ export interface IPushFileFromFsOptions {
   dstFileName: string;
   dstFileDir: string;
 }
+/**
+ * Combines two objects that are returned by the Dockerode API.
+ * It is meant to be a convenience to have these tied together instead of the
+ * caller having to call .inspect() on the network themselves to obtain the
+ * `NetworkInspectInfo` object in addition to the network object.
+ *
+ * @see https://github.com/apocas/dockerode/blob/e9c14e80505d4ccd9a9d606fcc18cfc5bb94d546/lib/network.js
+ */
+export interface IDockerNetworkAndInspectInfo {
+  network: Dockerode.Network;
+  info: Dockerode.NetworkInspectInfo;
+}
+
+/**
+ * This is derived from how the Docker Engine API represents networks and
+ * therefore we do not have the liberty of choosing the property names.
+ */
+export interface IDockerNetworkOptions {
+  Name: string;
+}
 
 export class Containers {
   /**
@@ -396,6 +416,51 @@ export class Containers {
   }
 
   /**
+   * Creates a docker network with the provided options if not already in
+   * existence.
+   * If a network with the specified name already exists then it just returns
+   * that one instead of creating a new one.
+   *
+   * @param opts The options defined for the operation containing relevant
+   * metadata such as the name of the network.
+   */
+  public static async getOrCreateNetwork(
+    opts: IDockerNetworkOptions,
+  ): Promise<IDockerNetworkAndInspectInfo> {
+    const fnTag = `Containers#getOrCreateNetwork()`;
+
+    Checks.truthy(opts, `${fnTag}:opts`);
+    Checks.truthy(opts.Name, `${fnTag}:opts.name`);
+    Checks.nonBlankString(opts.Name, `${fnTag}:opts.name`);
+
+    const docker = new Dockerode();
+
+    const infoList = (await docker.listNetworks()) as Dockerode.NetworkInspectInfo[];
+
+    let info = infoList.find((it) => {
+      return it.Name === opts.Name;
+    });
+
+    if (!info) {
+      const net = (await docker.createNetwork(opts)) as Dockerode.Network;
+      Checks.truthy(net, `${fnTag}:network`);
+
+      info = (await net.inspect()) as Dockerode.NetworkInspectInfo;
+    }
+    Checks.truthy(info, `${fnTag}:info`);
+    Checks.truthy(info.Id, `${fnTag}:info.Id`);
+    Checks.truthy(info.Name, `${fnTag}:info.Name`);
+
+    const network = await docker.getNetwork(info.Id);
+    Checks.truthy(network, `${fnTag}:network`);
+    Checks.truthy(network.inspect, `${fnTag}:network.inspect`);
+    Checks.truthy(network.connect, `${fnTag}:network.connect`);
+    Checks.truthy(network.remove, `${fnTag}:network.remove`);
+
+    return { network, info: info };
+  }
+
+  /**
    * Awaits until a container identified by the containerId
    * parameter becomes healthy.
    * @param containerId The ID of the container to wait for the healthy status.
@@ -416,13 +481,13 @@ export class Containers {
         const { Status } = await Containers.getById(containerId);
         reachable = Status.endsWith(" (healthy)");
       } catch (ex) {
-        // FIXME: if the container is slow to start this might trip with a
-        // false positive because there is no container YET in the beginning.
-        // if (ex.stack.includes(`no container by ID"${containerId}"`)) {
-        //   throw new Error(
-        //     `${fnTag} container crashed while awaiting healthheck -> ${ex.stack}`,
-        //   );
-        // }
+        // TODO: Verify somehow if the container is slow to start this might trip with a
+        // false positive because there is no container YET in the beginning?
+        if (ex.stack.includes(`no container by ID"${containerId}"`)) {
+          throw new Error(
+            `${fnTag} container crashed while awaiting healthheck -> ${ex.stack}`,
+          );
+        }
         if (Date.now() >= startedAt + timeoutMs) {
           throw new Error(`${fnTag} timed out (${timeoutMs}ms) -> ${ex.stack}`);
         }
