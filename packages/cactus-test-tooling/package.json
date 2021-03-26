@@ -92,6 +92,7 @@
     "joi": "14.3.1",
     "node-ssh": "11.1.1",
     "p-retry": "4.4.0",
+    "sshpk": "1.16.1",
     "tar-stream": "2.1.2",
     "typescript-optional": "2.0.1",
     "web3": "1.2.7",
