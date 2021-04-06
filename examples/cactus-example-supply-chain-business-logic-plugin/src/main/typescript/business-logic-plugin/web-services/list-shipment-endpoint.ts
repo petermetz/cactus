@@ -5,8 +5,10 @@ import {
   Checks,
   LogLevelDesc,
   LoggerProvider,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 import {
+  IAuthorizationOptions,
   IExpressRequestHandler,
   IWebServiceEndpoint,
 } from "@hyperledger/cactus-core-api";
@@ -60,6 +62,16 @@ export class ListShipmentEndpoint implements IWebServiceEndpoint {
     const level = this.opts.logLevel || "INFO";
     const label = this.className;
     this.log = LoggerProvider.getOrCreate({ level, label });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public registerExpress(expressApp: Express): IWebServiceEndpoint {

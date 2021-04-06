@@ -6,11 +6,13 @@ import {
   Checks,
   LogLevelDesc,
   LoggerProvider,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import {
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
@@ -59,6 +61,16 @@ export class DeployContractGoSourceEndpointV1 implements IWebServiceEndpoint {
 
   public getVerbLowerCase(): string {
     return this.oasPath.post["x-hyperledger-cactus"].http.verbLowerCase;
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public registerExpress(app: Express): IWebServiceEndpoint {

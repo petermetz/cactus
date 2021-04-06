@@ -5,6 +5,7 @@ import {
   IExpressRequestHandler,
   JWSGeneral,
   JWSRecipient,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import {
@@ -16,6 +17,7 @@ import {
   LogLevelDesc,
   Logger,
   LoggerProvider,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import {
@@ -49,6 +51,16 @@ export class GetConsortiumEndpointV1 implements IWebServiceEndpoint {
     const label = "get-consortium-jws-endpoint";
     const level = options.logLevel || "INFO";
     this.log = LoggerProvider.getOrCreate({ label, level });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {

@@ -7,6 +7,7 @@ import OAS from "../../json/openapi.json";
 import {
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import {
@@ -14,6 +15,7 @@ import {
   Logger,
   LoggerProvider,
   Checks,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import { PluginLedgerConnectorBesu } from "../plugin-ledger-connector-besu";
@@ -38,6 +40,16 @@ export class GetPrometheusExporterMetricsEndpointV1
     const label = "get-prometheus-exporter-metrics-endpoint";
     const level = options.logLevel || "INFO";
     this.log = LoggerProvider.getOrCreate({ label, level });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {

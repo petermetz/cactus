@@ -25,3 +25,8 @@ export { PluginAspect } from "./plugin/plugin-aspect";
 export { IPluginFactoryOptions } from "./i-plugin-factory-options";
 
 export { PluginFactoryFactory } from "./plugin-factory-factory";
+
+export {
+  IAuthorizationOptions,
+  isIAuthorizationOptions,
+} from "./plugin/web-service/i-authorization-options";

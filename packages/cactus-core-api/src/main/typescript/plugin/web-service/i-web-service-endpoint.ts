@@ -1,4 +1,6 @@
 import { Express } from "express";
+import { IAsyncProvider } from "@hyperledger/cactus-common";
+import { IAuthorizationOptions } from "./i-authorization-options";
 import { IExpressRequestHandler } from "./i-express-request-handler";
 
 /**
@@ -35,4 +37,8 @@ export interface IWebServiceEndpoint {
    * > Handler registration methods are usually: `.get()`, `.post()`, `.all()`, `.use()`, etc.
    */
   getExpressRequestHandler(): IExpressRequestHandler;
+  /**
+   * Returns an
+   */
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions>;
 }

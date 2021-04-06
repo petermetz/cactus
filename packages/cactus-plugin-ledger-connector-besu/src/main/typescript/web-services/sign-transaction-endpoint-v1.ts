@@ -5,6 +5,7 @@ import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
 import {
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import {
@@ -12,6 +13,7 @@ import {
   Logger,
   LoggerProvider,
   Checks,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import { SignTransactionRequest } from "../generated/openapi/typescript-axios/api";
@@ -36,6 +38,16 @@ export class BesuSignTransactionEndpointV1 implements IWebServiceEndpoint {
     const label = "besu-sign-transaction-endpoint";
     const level = options.logLevel || "INFO";
     this.log = LoggerProvider.getOrCreate({ label, level });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {

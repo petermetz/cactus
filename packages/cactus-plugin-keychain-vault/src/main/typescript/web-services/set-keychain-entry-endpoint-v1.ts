@@ -5,8 +5,10 @@ import {
   Checks,
   LogLevelDesc,
   LoggerProvider,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 import {
+  IAuthorizationOptions,
   IExpressRequestHandler,
   IWebServiceEndpoint,
 } from "@hyperledger/cactus-core-api";
@@ -23,7 +25,7 @@ export class SetKeychainEntryEndpointV1 implements IWebServiceEndpoint {
 
   private readonly log: Logger;
 
-  public get className() {
+  public get className(): string {
     return SetKeychainEntryEndpointV1.CLASS_NAME;
   }
 
@@ -34,12 +36,23 @@ export class SetKeychainEntryEndpointV1 implements IWebServiceEndpoint {
     const level = this.options.logLevel || "INFO";
     const label = this.className;
     this.log = LoggerProvider.getOrCreate({ level, label });
+    this.log.debug(`Instantiated ${this.className} OK`);
   }
 
   private getOperation() {
     return OAS.paths[
       "/api/v1/plugins/@hyperledger/cactus-plugin-keychain-vault/set-keychain-entry"
     ].post;
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public registerExpress(expressApp: Express): IWebServiceEndpoint {

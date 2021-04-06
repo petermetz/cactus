@@ -7,6 +7,7 @@ import {
   JWSGeneral,
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import { GetNodeJwsResponse } from "../generated/openapi/typescript-axios";
@@ -16,6 +17,7 @@ import {
   LogLevelDesc,
   LoggerProvider,
   Checks,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import {
@@ -56,6 +58,16 @@ export class GetNodeJwsEndpoint implements IWebServiceEndpoint {
     const level = options.logLevel || "INFO";
     const label = "get-node-jws-endpoint-v1";
     this.log = LoggerProvider.getOrCreate({ level, label });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {

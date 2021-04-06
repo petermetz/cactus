@@ -5,11 +5,13 @@ import {
   LoggerProvider,
   LogLevelDesc,
   Checks,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import {
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api/";
 
 import OAS from "../../json/openapi.json";
@@ -39,6 +41,16 @@ export class GetPrometheusExporterMetricsEndpointV1
       label: "get-prometheus-exporter-metrics-v1",
       level: opts.logLevel || "INFO",
     });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {

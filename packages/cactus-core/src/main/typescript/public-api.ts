@@ -4,3 +4,8 @@ export {
   ConsortiumRepository,
   IConsortiumRepositoryOptions,
 } from "./consortium-repository";
+
+export {
+  AuthorizationOptionsProvider,
+  IAuthorizationOptionsProviderOptions,
+} from "./web-services/authorization-options-provider";

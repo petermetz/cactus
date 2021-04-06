@@ -5,12 +5,19 @@ import {
   Checks,
   LogLevelDesc,
   LoggerProvider,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 import {
+  IAuthorizationOptions,
   IExpressRequestHandler,
   IWebServiceEndpoint,
 } from "@hyperledger/cactus-core-api";
-import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
+
+import {
+  AuthorizationOptionsProvider,
+  registerWebServiceEndpoint,
+} from "@hyperledger/cactus-core";
+
 import {
   DefaultApi as QuorumApi,
   EthContractInvocationType,
@@ -26,7 +33,13 @@ export interface IInsertBambooHarvestEndpointOptions {
   contractAbi: any;
   apiClient: QuorumApi;
   web3SigningCredential: Web3SigningCredential;
+  authorizationOptionsProvider?: AuthorizationOptionsProvider;
 }
+
+const K_DEFAULT_AUTHORIZATION_OPTIONS: IAuthorizationOptions = {
+  isSecure: true,
+  requiredRoles: [],
+};
 
 export class InsertBambooHarvestEndpoint implements IWebServiceEndpoint {
   public static readonly HTTP_PATH = Constants.HTTP_PATH;
@@ -38,6 +51,7 @@ export class InsertBambooHarvestEndpoint implements IWebServiceEndpoint {
   public static readonly CLASS_NAME = "InsertBambooHarvestEndpoint";
 
   private readonly log: Logger;
+  private readonly authorizationOptionsProvider: AuthorizationOptionsProvider;
 
   public get className(): string {
     return InsertBambooHarvestEndpoint.CLASS_NAME;
@@ -57,6 +71,16 @@ export class InsertBambooHarvestEndpoint implements IWebServiceEndpoint {
     const level = this.opts.logLevel || "INFO";
     const label = this.className;
     this.log = LoggerProvider.getOrCreate({ level, label });
+
+    this.authorizationOptionsProvider =
+      opts.authorizationOptionsProvider ||
+      AuthorizationOptionsProvider.of(K_DEFAULT_AUTHORIZATION_OPTIONS, level);
+
+    this.log.debug(`Instantiated ${this.className} OK`);
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    return this.authorizationOptionsProvider;
   }
 
   public registerExpress(expressApp: Express): IWebServiceEndpoint {

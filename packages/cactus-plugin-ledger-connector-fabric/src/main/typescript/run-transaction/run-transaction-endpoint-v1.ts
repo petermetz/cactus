@@ -5,11 +5,13 @@ import {
   LoggerProvider,
   LogLevelDesc,
   Checks,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import {
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
@@ -36,6 +38,16 @@ export class RunTransactionEndpointV1 implements IWebServiceEndpoint {
       label: "run-transaction-endpoint-v1",
       level: opts.logLevel || "INFO",
     });
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {

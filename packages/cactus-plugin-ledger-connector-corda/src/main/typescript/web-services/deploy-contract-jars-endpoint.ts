@@ -10,12 +10,17 @@ import {
   IExpressRequestHandler,
 } from "@hyperledger/cactus-core-api";
 
+import { AuthorizationOptionsProvider } from "@hyperledger/cactus-core";
+
 import {
   Checks,
+  IAsyncProvider,
   Logger,
   LoggerProvider,
   LogLevelDesc,
 } from "@hyperledger/cactus-common";
+
+import { IAuthorizationOptions } from "@hyperledger/cactus-core-api/dist/types/main/typescript/plugin/web-service/i-authorization-options";
 
 import {
   DeployContractJarsSuccessV1Response,
@@ -30,14 +35,21 @@ export interface IDeployContractEndpointOptions {
   corDappsDir: string;
   cordaStartCmd?: string;
   cordaStopCmd?: string;
+  authorizationOptionsProvider?: AuthorizationOptionsProvider;
 }
+
+const K_DEFAULT_AUTHORIZATION_OPTIONS: IAuthorizationOptions = {
+  isSecure: true,
+  requiredRoles: [],
+};
 
 export class DeployContractJarsEndpoint implements IWebServiceEndpoint {
   public static readonly CLASS_NAME = "DeployContractJarsEndpoint";
 
   private readonly log: Logger;
+  private readonly authorizationOptionsProvider: AuthorizationOptionsProvider;
 
-  public get className() {
+  public get className(): string {
     return DeployContractJarsEndpoint.CLASS_NAME;
   }
 
@@ -50,6 +62,16 @@ export class DeployContractJarsEndpoint implements IWebServiceEndpoint {
     const level = options.logLevel || "INFO";
     const label = "deploy-contract-jars-endpoint";
     this.log = LoggerProvider.getOrCreate({ level, label });
+
+    this.authorizationOptionsProvider =
+      options.authorizationOptionsProvider ||
+      AuthorizationOptionsProvider.of(K_DEFAULT_AUTHORIZATION_OPTIONS, level);
+
+    this.log.debug(`Instantiated ${this.className} OK`);
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    return this.authorizationOptionsProvider;
   }
 
   public get oasOperation() {

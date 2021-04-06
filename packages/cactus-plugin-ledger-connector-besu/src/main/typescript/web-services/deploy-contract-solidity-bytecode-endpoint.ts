@@ -3,6 +3,7 @@ import { Express, Request, Response } from "express";
 import {
   IWebServiceEndpoint,
   IExpressRequestHandler,
+  IAuthorizationOptions,
 } from "@hyperledger/cactus-core-api";
 
 import {
@@ -10,6 +11,7 @@ import {
   Checks,
   LogLevelDesc,
   LoggerProvider,
+  IAsyncProvider,
 } from "@hyperledger/cactus-common";
 
 import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
@@ -29,7 +31,7 @@ export class DeployContractSolidityBytecodeEndpoint
 
   private readonly log: Logger;
 
-  public get className() {
+  public get className(): string {
     return DeployContractSolidityBytecodeEndpoint.CLASS_NAME;
   }
 
@@ -61,6 +63,16 @@ export class DeployContractSolidityBytecodeEndpoint
 
   public getOperationId(): string {
     return this.getOasPath().post.operationId;
+  }
+
+  getAuthorizationOptionsProvider(): IAsyncProvider<IAuthorizationOptions> {
+    // TODO: make this an injectable dependency in the constructor
+    return {
+      get: async () => ({
+        isSecure: true,
+        requiredRoles: [],
+      }),
+    };
   }
 
   public registerExpress(app: Express): IWebServiceEndpoint {

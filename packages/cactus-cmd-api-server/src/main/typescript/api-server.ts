@@ -6,6 +6,7 @@ import { Server, createServer } from "http";
 import { Server as SecureServer } from "https";
 import { createServer as createSecureServer } from "https";
 import npm from "npm";
+import passport from "passport";
 import expressHttpProxy from "express-http-proxy";
 import express, {
   Express,
@@ -37,6 +38,7 @@ import OAS from "../json/openapi.json";
 import { OpenAPIV3 } from "express-openapi-validator/dist/framework/types";
 
 import { PrometheusExporter } from "./prometheus-exporter/prometheus-exporter";
+import { AuthorizationConfigurator } from "./authzn/authorization-configurator";
 export interface IApiServerConstructorOptions {
   pluginRegistry?: PluginRegistry;
   httpServerApi?: Server | SecureServer;
@@ -46,11 +48,17 @@ export interface IApiServerConstructorOptions {
 }
 
 export class ApiServer {
+  public static readonly CLASS_NAME = "ApiServer";
+
   private readonly log: Logger;
   private pluginRegistry: PluginRegistry | undefined;
   private readonly httpServerApi: Server | SecureServer;
   private readonly httpServerCockpit: Server | SecureServer;
   public prometheusExporter: PrometheusExporter;
+
+  public get className(): string {
+    return ApiServer.CLASS_NAME;
+  }
 
   constructor(public readonly options: IApiServerConstructorOptions) {
     if (!options) {
@@ -114,7 +122,10 @@ export class ApiServer {
     return this.pluginRegistry?.plugins.length || 0;
   }
 
-  async start(): Promise<any> {
+  async start(): Promise<{
+    addressInfoCockpit: AddressInfo;
+    addressInfoApi: AddressInfo;
+  }> {
     this.checkNodeVersion();
     const tlsMaxVersion = this.options.config.tlsDefaultMaxVersion;
     this.log.info("Setting tls.DEFAULT_MAX_VERSION to %s...", tlsMaxVersion);
@@ -197,31 +208,40 @@ export class ApiServer {
 
   public async initPluginRegistry(): Promise<PluginRegistry> {
     const registry = new PluginRegistry({ plugins: [] });
-    const { logLevel, plugins } = this.options.config;
+    const { plugins } = this.options.config;
     this.log.info(`Instantiated empty registry, invoking plugin factories...`);
 
     for (const pluginImport of plugins) {
-      const { packageName, options } = pluginImport;
-      this.log.info(`Creating plugin from package: ${packageName}`, options);
-      const pluginOptions = { ...options, logLevel, pluginRegistry: registry };
-
-      await this.installPluginPackage(pluginImport);
-
-      const pluginPackage = require(/* webpackIgnore: true */ packageName);
-      const createPluginFactory = pluginPackage.createPluginFactory as PluginFactoryFactory;
-
-      const pluginFactoryOptions: IPluginFactoryOptions = {
-        pluginImportType: pluginImport.type,
-      };
-
-      const pluginFactory = await createPluginFactory(pluginFactoryOptions);
-
-      const plugin = await pluginFactory.create(pluginOptions);
-
+      const plugin = await this.instantiatePlugin(pluginImport, registry);
       registry.add(plugin);
     }
 
     return registry;
+  }
+
+  private async instantiatePlugin(
+    pluginImport: PluginImport,
+    registry: PluginRegistry,
+  ): Promise<ICactusPlugin> {
+    const { logLevel } = this.options.config;
+    const { packageName, options } = pluginImport;
+    this.log.info(`Creating plugin from package: ${packageName}`, options);
+    const pluginOptions = { ...options, logLevel, pluginRegistry: registry };
+
+    await this.installPluginPackage(pluginImport);
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pluginPackage = require(/* webpackIgnore: true */ packageName);
+    const createPluginFactory = pluginPackage.createPluginFactory as PluginFactoryFactory;
+
+    const pluginFactoryOptions: IPluginFactoryOptions = {
+      pluginImportType: pluginImport.type,
+    };
+
+    const pluginFactory = await createPluginFactory(pluginFactoryOptions);
+
+    const plugin = await pluginFactory.create(pluginOptions);
+    return plugin;
   }
 
   private async installPluginPackage(
@@ -415,7 +435,19 @@ export class ApiServer {
   }
 
   async startApiServer(): Promise<AddressInfo> {
+    const { options } = this;
+    const { config } = options;
+    const { authorizationConfigJson } = config;
+    const { allowedNonSecurePathPatterns } = authorizationConfigJson;
+
     const pluginRegistry = await this.getOrInitPluginRegistry();
+
+    const authorizationConfigurator = new AuthorizationConfigurator({
+      apiServerOptions: config,
+      pluginRegistry,
+      logLevel: this.options.config.logLevel,
+    });
+    const authorizer = await authorizationConfigurator.configureAuthzProtocol();
 
     const app: Application = express();
     app.use(compression());
@@ -424,8 +456,41 @@ export class ApiServer {
     const allowedDomains = apiCorsDomainCsv.split(",");
     const corsMiddleware = this.createCorsMiddleware(allowedDomains);
     app.use(corsMiddleware);
-
     app.use(bodyParser.json({ limit: "50mb" }));
+
+    if (authorizer.isPresent()) {
+      app.use(passport.initialize());
+      const theAuthorizer = authorizer.get();
+      await theAuthorizer.initOnce();
+      const nonSecureEndpoints = theAuthorizer.getNonSecureEndpoints();
+      const disallowedNonSecureEndpoints = nonSecureEndpoints.filter((nse) =>
+        allowedNonSecurePathPatterns.some((ptrn) => nse.getPath().match(ptrn)),
+      );
+      if (disallowedNonSecureEndpoints.length > 0) {
+        const csv = disallowedNonSecureEndpoints.join(", ");
+        throw new Error(
+          `Disallowed non-secure endpoints found: ${csv}.` +
+            `You can allow them as non-secure via the configuration of the` +
+            `API server by specifying an array of patterns in the property ` +
+            `"allowedNonSecurePathPatterns" of "authorizationConfigJson"`,
+        );
+      }
+
+      // const x = passport.authenticate(AuthorizationProtocol.SAML2, { failureRedirect: '/', failureFlash: true });
+      // app.post("/auth/saml/login/callback",
+      //   bodyParser.urlencoded({ extended: false }),
+      //   (req, res, next) => {
+      //     this.log.debug(`SAML callback URL hit`);
+      //     next();
+      //     // x(req, res, next);
+      //   }
+      // );
+
+      const authzHandler = theAuthorizer.getExpressRequestHandler();
+      app.use(authzHandler);
+
+      this.log.info(`Authorization request handler configured OK.`);
+    }
 
     const openApiValidator = this.createOpenApiValidator();
     await openApiValidator.install(app);
@@ -461,7 +526,7 @@ export class ApiServer {
     this.httpServerApi.on("request", app);
 
     // the address() method returns a string for unix domain sockets and null
-    // if the server is not listening but we don't car about any of those cases
+    // if the server is not listening but we don't care about any of those cases
     // so the casting here should be safe. Famous last words... I know.
     const addressInfo = this.httpServerApi.address() as AddressInfo;
     this.log.info(`Cactus API net.AddressInfo`, addressInfo);
