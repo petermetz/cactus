@@ -52,7 +52,7 @@ test(testCase, async (t: Test) => {
     emitContainerLogs: true,
     publishAllPorts: true,
     imageName: "hyperledger/cactus-fabric-all-in-one",
-    imageVersion: "2021-03-02-ssh-hotfix",
+    imageVersion: "2021-04-08-4fc39fc",
   });
   await ledger.start();
   t.doesNotThrow(() => ledger.getContainer(), "Container is set OK");

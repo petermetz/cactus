@@ -1,4 +1,4 @@
-# fabric-docker-all-in-one
+# @hyperledger/fabric2-docker-all-in-one
 
 > This docker image is for `testing` and `development` only.
 > Do NOT use in production!
@@ -66,7 +66,7 @@ ssh root@localhost -p 32924 -i fabric-aio-image.key
 ```
 
 ```sh
-DOCKER_BUILDKIT=1 docker build ./tools/docker/fabric-all-in-one/ -f ./tools/docker/fabric-all-in-one/Dockerfile  -t faio14x
+DOCKER_BUILDKIT=1 docker build ./tools/docker/fabric-all-in-one/ -f ./tools/docker/fabric-all-in-one/Dockerfile_v1.4.x  -t faio14x
 docker run --detach --privileged --publish-all --env FABRIC_VERSION=1.4.8 faio14x
 
 docker ps
