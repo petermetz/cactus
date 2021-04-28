@@ -56,8 +56,8 @@
     "lerna-publish": "lerna publish --conventional-commits --sign-git-commit --sign-git-tag"
   },
   "devDependencies": {
-    "@commitlint/cli": "11.0.0",
-    "@commitlint/config-conventional": "8.0.0",
+    "@commitlint/cli": "12.1.1",
+    "@commitlint/config-conventional": "12.1.1",
     "@openapitools/openapi-generator-cli": "1.0.18-5.0.0-beta2",
     "@types/node-fetch": "2.5.4",
     "@types/tape": "4.13.0",
@@ -80,7 +80,7 @@
     "eslint-plugin-prettier": "3.3.1",
     "eslint-plugin-promise": "4.1.1",
     "eslint-plugin-standard": "4.0.0",
-    "git-cz": "4.7.1",
+    "git-cz": "4.7.6",
     "husky": "4.2.5",
     "inquirer": "7.1.0",
     "karma": "5.1.0",
