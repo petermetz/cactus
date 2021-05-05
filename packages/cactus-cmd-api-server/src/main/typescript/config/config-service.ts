@@ -4,11 +4,11 @@ import convict, { Schema, Config, SchemaObj } from "convict";
 import { ipaddress } from "convict-format-with-validator";
 import { v4 as uuidV4 } from "uuid";
 import { JWK, JWS } from "jose";
+import type { Options as ExpressJwtOptions } from "express-jwt";
 import {
   LoggerProvider,
   Logger,
   LogLevelDesc,
-  Strings,
 } from "@hyperledger/cactus-common";
 import {
   ConsortiumDatabase,
@@ -107,19 +107,7 @@ export class ConfigService {
       authorizationConfigJson: {
         doc: "The JSON string to deserialize when configuring authorization.",
         default: null as IAuthorizationConfig | null,
-        format: (json: string) => {
-          if (Strings.isString(json)) {
-            ConfigService.formatNonBlankString(json);
-            try {
-              const authzConf = JSON.parse(json) as IAuthorizationConfig;
-              return authzConf;
-            } catch (ex) {
-              throw new Error(`AUTHORIZATION_CONFIG_JSON invalid JSON`);
-            }
-          } else {
-            return json;
-          }
-        },
+        format: Object,
         env: "AUTHORIZATION_CONFIG_JSON",
         arg: "authorization-config-json",
       },
@@ -510,16 +498,20 @@ export class ConfigService {
       },
     ];
 
+    const middlewareOptions: ExpressJwtOptions = {
+      algorithms: ["RS256"],
+      secret: uuidV4(),
+      audience: "org.hyperledger.cactus.jwt.audience",
+      issuer: "org.hyperledger.cactus.jwt.issuer",
+    };
+    const authorizationConfigJson: IAuthorizationConfig = {
+      unprotectedEndpointExemptions: [],
+      middlewareOptions,
+    };
+
     return {
       authorizationProtocol: AuthorizationProtocol.JSON_WEB_TOKEN,
-      authorizationConfigJson: {
-        unprotectedEndpointExemptions: [],
-        middlewareOptions: {
-          secret: uuidV4(),
-          audience: "org.hyperledger.cactus.jwt.audience",
-          issuer: "org.hyperledger.cactus.jwt.issuer",
-        },
-      },
+      authorizationConfigJson,
       configFile: ".config.json",
       cactusNodeId: uuidV4(),
       consortiumId: uuidV4(),
