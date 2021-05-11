@@ -7,6 +7,10 @@ import { Optional } from "typescript-optional";
 import Web3 from "web3";
 import { AbiItem } from "web3-utils";
 
+import { OpenApiValidator } from "express-openapi-validator";
+import OAS from "../json/openapi.json";
+import { OpenAPIV3 } from "express-openapi-validator/dist/framework/types";
+
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import { TransactionReceipt } from "web3-eth";
 
@@ -159,9 +163,38 @@ export class PluginLedgerConnectorBesu
     }
   }
 
+  /*public createOpenApiValidator(): OpenApiValidator {
+    return new OpenApiValidator({
+    apiSpec: OAS as unknown as OpenAPIV3.Document,
+    validateRequests: true,
+    validateResponses: false,
+    });
+    }
+
+    app.use((err: any, res) => {
+      res.status(err.status || 500).json({
+        message: err.message,
+        errors: err.errors,
+      })
+    })
+
+    const openApiValidator = this.createOpenApiValidator();
+    await openApiValidator.install(app);
+    */
+
+  public createOpenApiValidator(): OpenApiValidator {
+    return new OpenApiValidator({
+      apiSpec: (OAS as unknown) as OpenAPIV3.Document,
+      validateRequests: true,
+      validateResponses: false,
+    });
+  }
+
   async registerWebServices(app: Express): Promise<IWebServiceEndpoint[]> {
     const webServices = await this.getOrCreateWebServices();
     await Promise.all(webServices.map((ws) => ws.registerExpress(app)));
+    const openApiValidator = this.createOpenApiValidator();
+    await openApiValidator.install(app);
     return webServices;
   }
 
