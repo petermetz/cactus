@@ -11,3 +11,7 @@ export {
 } from "./web-services/authorization-options-provider";
 
 export { consensusHasTransactionFinality } from "./consensus-has-transaction-finality";
+
+export { expressOpenApiValidatorErrorFormatter } from "./web-services/express-openapi-validator-error-formatter";
+export { IExpressOpenApiValidatorError } from "./web-services/express-openapi-validator-error-formatter";
+export { isOpenApiSpecValidationError } from "./web-services/express-openapi-validator-error-formatter";

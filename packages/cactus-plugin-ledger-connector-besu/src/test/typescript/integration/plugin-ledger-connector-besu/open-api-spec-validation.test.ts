@@ -1,14 +1,13 @@
+import type { AddressInfo } from "net";
+import http from "http";
 import test, { Test } from "tape-promise/tape";
 import { v4 as uuidv4 } from "uuid";
+import express from "express";
+import bodyParser from "body-parser";
+import Web3 from "web3";
 import { PluginRegistry } from "@hyperledger/cactus-core";
-import {
-  Web3SigningCredentialType,
-  PluginLedgerConnectorBesu,
-  PluginFactoryLedgerConnector,
-  ReceiptType,
-  DefaultApi as BesuApi,
-  RunTransactionRequest,
-} from "../../../../main/typescript/public-api";
+import { isOpenApiSpecValidationError } from "@hyperledger/cactus-core";
+import { expressOpenApiValidatorErrorFormatter } from "@hyperledger/cactus-core";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
   BesuTestLedger,
@@ -19,13 +18,17 @@ import {
   IListenOptions,
   Servers,
 } from "@hyperledger/cactus-common";
+import {
+  Web3SigningCredentialType,
+  PluginLedgerConnectorBesu,
+  PluginFactoryLedgerConnector,
+  ReceiptType,
+  DefaultApi as BesuApi,
+  RunTransactionRequest,
+  // BesuTransactionConfig,
+} from "../../../../main/typescript/public-api";
 import HelloWorldContractJson from "../../../solidity/hello-world-contract/HelloWorld.json";
-import Web3 from "web3";
 import { PluginImportType } from "@hyperledger/cactus-core-api";
-import express from "express";
-import bodyParser from "body-parser";
-import http from "http";
-import { AddressInfo } from "net";
 
 const testCase = "open api spec validation";
 const logLevel: LogLevelDesc = "TRACE";
@@ -40,10 +43,10 @@ test(testCase, async (t: Test) => {
   const besuTestLedger = new BesuTestLedger();
   await besuTestLedger.start();
 
-  /*test.onFinish(async () => {
+  test.onFinish(async () => {
     await besuTestLedger.stop();
     await besuTestLedger.destroy();
-  });*/
+  });
 
   const rpcApiHttpHost = await besuTestLedger.getRpcApiHttpHost();
 
@@ -96,7 +99,7 @@ test(testCase, async (t: Test) => {
     server,
   };
   const addressInfo = (await Servers.listen(listenOptions)) as AddressInfo;
-  //test.onFinish(async () => await Servers.shutdown(server));
+  test.onFinish(async () => await Servers.shutdown(server));
   const { address, port } = addressInfo;
   const apiHost = `http://${address}:${port}`;
   t.comment(
@@ -107,6 +110,7 @@ test(testCase, async (t: Test) => {
 
   await connector.getOrCreateWebServices();
   await connector.registerWebServices(expressApp);
+  expressApp.use(expressOpenApiValidatorErrorFormatter);
 
   await connector.transact({
     web3SigningCredential: {
@@ -141,8 +145,8 @@ test(testCase, async (t: Test) => {
   );
 
   /*  try {
-    await apiClient.apiV1BesuRunTransaction({ 
-      consistencyStrategy:{ blockConfirmations: 0, receiptType: ReceiptType.NODETXPOOLACK}, 
+    await apiClient.apiV1BesuRunTransaction({
+      consistencyStrategy:{ blockConfirmations: 0, receiptType: ReceiptType.NODETXPOOLACK},
       transactionConfig:{rawTransaction},
       web3SigningCredential:{ type: Web3SigningCredentialType.NONE }
     } as RunTransactionRequest);
@@ -158,14 +162,38 @@ test(testCase, async (t: Test) => {
         blockConfirmations: 0,
         receiptType: ReceiptType.NODETXPOOLACK,
       },
+      // transactionConfig: (null as unknown) as BesuTransactionConfig,
       transactionConfig: { rawTransaction },
       web3SigningCredential: { type: Web3SigningCredentialType.NONE },
+      something: { that: "the request should not contain", ha: ["ha", "ha"] },
     } as RunTransactionRequest);
+    t.comment(`HTTP Status code received in response: ${status}`);
+    t.fail("Invalid request sent to endpoint was accepted by the back-end");
   } catch (ex) {
+    t.ok(ex, "Exception thrown by API client truthy OK");
+    t.ok(ex.response, "Exception.response thrown by API client truthy OK");
+    t.ok(ex.response.status, "ex.response.status truthy OK");
+    const { status, data } = ex.response;
+    t.ok(data, "ex.response.data truthy OK");
     t.true(
-      ex.response.status >= 400 && ex.response.status < 500,
-      "Status code = 4xx ",
+      isOpenApiSpecValidationError(data),
+      "ex.response.data is Express OpenAPI Validator error",
     );
-    t.true(ex.response.status >= 500, "Status code = 500 OK");
+    const { errors, message } = data;
+    t.ok(errors, "ex.response.data.errors truthy OK");
+    t.ok(message, "ex.response.data.message truthy OK");
+    const msgGood = message.includes("should NOT have additional properties");
+    t.true(msgGood, "ex.response.data.message looks correct OK");
+    t.true(Array.isArray(errors), "ex.response.data.errors isArray true OK");
+    t.true(errors.length > 0, "ex.response.data.errors.length > 0 true OK");
+    const [firstEx] = errors;
+    t.ok(firstEx, "ex.response.data.errors[0] truthy OK");
+    t.ok(firstEx.path, "ex.response.data.errors[0].path truthy OK");
+    t.ok(firstEx.message, "ex.response.data.errors[0].message truthy OK");
+    t.ok(firstEx.errorCode, "ex.response.data.errors[0].errorCode truthy OK");
+    t.comment(`HTTP Status code received in ex.response: ${status}`);
+    t.true(status >= 400 && status < 500, "Status code = 4xx ");
   }
+
+  t.end();
 });

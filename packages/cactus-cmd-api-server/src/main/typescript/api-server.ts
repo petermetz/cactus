@@ -29,6 +29,7 @@ import {
 } from "@hyperledger/cactus-core-api";
 
 import { PluginRegistry } from "@hyperledger/cactus-core";
+import { expressOpenApiValidatorErrorFormatter } from "@hyperledger/cactus-core";
 
 import { Logger, LoggerProvider, Servers } from "@hyperledger/cactus-common";
 
@@ -484,6 +485,7 @@ export class ApiServer {
 
     const openApiValidator = this.createOpenApiValidator();
     await openApiValidator.install(app);
+    app.use(expressOpenApiValidatorErrorFormatter);
 
     this.getOrCreateWebServices(app); // The API server's own endpoints
 

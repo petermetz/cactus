@@ -191,10 +191,10 @@ export class PluginLedgerConnectorBesu
   }
 
   async registerWebServices(app: Express): Promise<IWebServiceEndpoint[]> {
-    const webServices = await this.getOrCreateWebServices();
-    await Promise.all(webServices.map((ws) => ws.registerExpress(app)));
     const openApiValidator = this.createOpenApiValidator();
     await openApiValidator.install(app);
+    const webServices = await this.getOrCreateWebServices();
+    await Promise.all(webServices.map((ws) => ws.registerExpress(app)));
     return webServices;
   }
 
@@ -443,6 +443,7 @@ export class PluginLedgerConnectorBesu
     this.log.debug("Starting web3.eth.sendSignedTransaction(rawTransaction) ");
     const txPoolReceipt = await this.web3.eth.sendSignedTransaction(rawTx);
     this.log.debug("Received preliminary receipt from Besu node.");
+    this.log.debug("receiptType=%o", req.consistencyStrategy.receiptType);
 
     if (txPoolReceipt instanceof Error) {
       this.log.debug(`${fnTag} sendSignedTransaction failed`, txPoolReceipt);
