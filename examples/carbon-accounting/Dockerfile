@@ -1,15 +1,43 @@
-FROM node:12.20.1-alpine3.12 as builder
+FROM ubuntu:20.04 as builder
 
-RUN apk update
+# Replace shell with bash so we can source files
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
+# make sure apt is up to date
+RUN apt-get update --fix-missing
+RUN apt dist-upgrade -y
+
+RUN DEBIAN_FRONTEND=noninteractive apt install -y build-essential software-properties-common
 
 # Need git because some of our npm depedencies might be coming
 # straight from github instead of being an npm package on npmjs.com.
-RUN apk add --no-cache git
+RUN apt install -y git
+
+# Need OpenJDK for the OpenAPI Generator which is a Java application.
+RUN DEBIAN_FRONTEND=noninteractive apt install -y openjdk-11-jdk
 
 # Some install scripts of the npm package fabric-network need python
-RUN apk add --no-cache python3 py3-pip
+RUN apt install -y python3.8 python3-pip
 
-RUN npm install modclean -g
+# Need it for sourcing .bashrc for nvm
+RUN apt install -y bash
+
+RUN apt install -y curl
+
+RUN mkdir -p /usr/local/nvm
+ENV NVM_DIR=/usr/local/nvm
+ENV NODE_VERSION=16.3.0
+
+# Install nvm with node and npm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash \
+    # && . $NVM_DIR/nvm.sh \
+    && source $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 WORKDIR /
 RUN mkdir /app/
@@ -21,38 +49,47 @@ RUN ./node_modules/.bin/lerna bootstrap
 RUN npm run build:dev:backend
 RUN npm run webpack:dev:web
 RUN npm run build:dev:frontend -- --scope='@hyperledger/cactus-example-supply-chain-frontend'
-RUN ./node_modules/.bin/lerna clean --yes
-RUN ./node_modules/.bin/lerna bootstrap -- --production --no-optional
+# RUN ./node_modules/.bin/lerna clean --yes
+# RUN ./node_modules/.bin/lerna bootstrap -- --production --no-optional
 
 RUN rm -rf ./packages/cactus-test-plugin*
 RUN rm -rf ./packages/cactus-test-cmd*
 RUN rm -rf ./packages/cactus-test-api*
 RUN rm -rf ./node_modules/
 
-FROM docker:20.10.2-dind-rootless as runner
+FROM cruizba/ubuntu-dind as runner
 
-USER root
+# Replace shell with bash so we can source files
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
-RUN apk update
-
-# Add bash for convenience, sh has less features
-RUN apk add --no-cache bash
+RUN apt update
 
 # Need curl for healthchecks
-RUN apk add --no-cache curl
+RUN apt install -y curl
 
 # The file binary is used to inspect exectubles when debugging container image issues
-RUN apk add --no-cache file
+RUN apt install -y file
 
-RUN apk add --no-cache nodejs
-RUN apk add --no-cache npm
+# Need it for sourcing .bashrc for nvm
+RUN apt install -y bash
 
-RUN apk add --no-cache ca-certificates
-RUN apk add --no-cache tzdata
+RUN mkdir -p /usr/local/nvm
+ENV NVM_DIR=/usr/local/nvm
+ENV NODE_VERSION=16.3.0
 
-# Install supervisord because we need to run the docker daemon and also the fabric network
-# meaning that we have multiple processes to run.
-RUN apk add --no-cache supervisor
+# Install nvm with node and npm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash \
+    # && . $NVM_DIR/nvm.sh \
+    && source $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+RUN apt install -y ca-certificates
+RUN apt install -y tzdata
 
 ARG APP=/usr/src/app/
 
@@ -60,8 +97,7 @@ ENV TZ=Etc/UTC
 ENV APP_USER=appuser
 
 RUN addgroup --system $APP_USER
-RUN adduser --system $APP_USER -G $APP_USER
-RUN addgroup $APP_USER rootless
+RUN useradd --system $APP_USER -g $APP_USER
 RUN mkdir -p ${APP}
 
 COPY --chown=$APP_USER:$APP_USER --from=builder /app/ ${APP}
@@ -76,6 +112,8 @@ WORKDIR ${APP}
 
 COPY --chown=${APP_USER}:${APP_USER} ./examples/carbon-accounting/healthcheck.sh /
 
+ENV AUTHORIZATION_PROTOCOL=NONE
+ENV AUTHORIZATION_CONFIG_JSON="{}"
 ENV CACTUS_NODE_ID=-
 ENV CONSORTIUM_ID=-
 ENV KEY_PAIR_PEM=-
@@ -98,7 +136,7 @@ ENV API_HOST=0.0.0.0
 ENV API_PORT=4000
 ENV LOG_LEVEL=TRACE
 
-COPY examples/supply-chain-app/supervisord.conf /etc/supervisord.conf
+COPY examples/carbon-accounting/supervisord.conf /etc/supervisord.conf
 
 # supervisord web ui/dashboard
 EXPOSE 9001
@@ -120,4 +158,4 @@ EXPOSE 3200
 ENTRYPOINT ["/usr/bin/supervisord"]
 CMD ["--configuration", "/etc/supervisord.conf", "--nodaemon"]
 HEALTHCHECK --interval=1s --timeout=5s --start-period=20s --retries=250 \
-    CMD /usr/src/app/examples/supply-chain-app/healthcheck.sh
+    CMD /usr/src/app/examples/carbon-accounting/healthcheck.sh

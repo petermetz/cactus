@@ -1,10 +1,13 @@
-FROM node:12.20.1-alpine3.12 as builder
+FROM node:14.17.0-buster-slim as builder
 
-RUN apk update
+RUN apt update
 
 # Need git because some of our npm depedencies might be coming
 # straight from github instead of being an npm package on npmjs.com.
-RUN apk add --no-cache git
+RUN apt install git
+
+# Need OpenJDK for the OpenAPI Generator which is a Java application.
+RUN apk add --no-cache openjdk11
 
 # Some install scripts of the npm package fabric-network need python
 RUN apk add --no-cache python3 py3-pip
