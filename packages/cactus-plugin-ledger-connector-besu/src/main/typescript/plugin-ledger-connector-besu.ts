@@ -10,7 +10,7 @@ import Web3 from "web3";
 import { AbiItem } from "web3-utils";
 
 import { Contract, ContractSendMethod } from "web3-eth-contract";
-import { TransactionReceipt } from "web3-eth";
+import { TransactionConfig, TransactionReceipt } from "web3-eth";
 
 import {
   ConsensusAlgorithmFamily,
@@ -692,5 +692,13 @@ export class PluginLedgerConnectorBesu
     }
 
     return Optional.empty();
+  }
+
+  public async estimateGas(request: unknown): Promise<number> {
+    const estimate = await this.web3.eth.estimateGas(
+      request as TransactionConfig,
+    );
+
+    return estimate;
   }
 }
