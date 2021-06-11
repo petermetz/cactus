@@ -77,11 +77,11 @@ export class CarbonAccountingApp {
       new PluginKeychainMemory({
         keychainId: this.keychainId,
         instanceId: uuidv4(),
-        logLevel,
+        logLevel: logLevel || "INFO",
       });
 
     this.ledgers = new CarbonAccountingAppDummyInfrastructure({
-      logLevel,
+      logLevel: logLevel || "INFO",
       keychain: this.keychain,
     });
   }
@@ -148,13 +148,13 @@ export class CarbonAccountingApp {
       cliContainerEnv: this.ledgers.org1Env,
       sshConfig,
       connectionProfile,
-      logLevel: this.options.logLevel,
+      logLevel: this.options.logLevel || "INFO",
       discoveryOptions: {
         enabled: true,
         asLocalhost: true,
       },
       eventHandlerOptions: {
-        strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
+        strategy: DefaultEventHandlerStrategy.NETWORKSCOPEALLFORTX,
         commitTimeout: 300,
       },
     });
@@ -177,7 +177,7 @@ export class CarbonAccountingApp {
     );
 
     const businessLogicPlugin = new CarbonAccountingPlugin({
-      logLevel: this.options.logLevel,
+      logLevel: this.options.logLevel || "INFO",
       xdaiContracts,
       fabricContracts,
       fabricPlugin,
@@ -189,7 +189,7 @@ export class CarbonAccountingApp {
       web3SigningCredential: {
         keychainEntryKey: xdaiAccount.address,
         keychainId: this.keychainId,
-        type: Web3SigningCredentialType.CactusKeychainRef,
+        type: Web3SigningCredentialType.CACTUSKEYCHAINREF,
       },
     });
 

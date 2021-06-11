@@ -14,6 +14,8 @@
   "bin": "./dist/lib/main/typescript/carbon-accounting-app-cli.js",
   "scripts": {
     "tsc": "tsc --project ./tsconfig.json",
+    "build:dev" : "npm run tsc || true && cp -r src/utility-emissions-channel dist/lib/",
+    "start" : "CONFIG_FILE=./example-config.json node dist/lib/main/typescript/carbon-accounting-app-cli.js",
     "solidity": "hardhat compile",
     "pretsc": "npm run solidity",
     "watch": "npm-watch",
