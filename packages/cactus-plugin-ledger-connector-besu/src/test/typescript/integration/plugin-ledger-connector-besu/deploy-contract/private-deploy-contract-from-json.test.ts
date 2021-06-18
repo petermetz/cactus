@@ -7,7 +7,6 @@ import {
   PluginLedgerConnectorBesu,
   PluginFactoryLedgerConnector,
   EthContractInvocationType,
-  // RunTransactionResponse,
 } from "../../../../../main/typescript/public-api";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
@@ -27,12 +26,12 @@ const testCase = "deploys contract via .json file";
 const logLevel: LogLevelDesc = "TRACE";
 
 //orion public key - receiving node
-// const privateFor = ["Ko2bVqD+nNlNYL5EE7y3IdOnviftjiizpjRt+HTuFBs="];
+const privateFor = ["Ko2bVqD+nNlNYL5EE7y3IdOnviftjiizpjRt+HTuFBs="];
 
 // const node3privateFor = "k2zXEin4Ip/qBGlRkJejnGWdP9cjkK+DAvKNW31L2C8=";
 
 //orion public key - sending node
-// const privateFrom = "A1aVtMxLCUHmBVHXoZzzBgPbW/wj5axDpW9X8l91SGo=";
+const privateFrom = "A1aVtMxLCUHmBVHXoZzzBgPbW/wj5axDpW9X8l91SGo=";
 const privateKey =
   "8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63";
 
@@ -91,6 +90,7 @@ test(testCase, async (t: Test) => {
   };
   const addressInfo = (await Servers.listen(listenOptions)) as AddressInfo;
   test.onFinish(async () => await Servers.shutdown(server));
+  test.onFinish(async () => await connector.shutdown());
   const { address, port } = addressInfo;
   const apiHost = `http://${address}:${port}`;
   t.comment(
@@ -99,49 +99,48 @@ test(testCase, async (t: Test) => {
   await connector.getOrCreateWebServices();
   await connector.registerWebServices(expressApp, wsApi);
 
-  // let contractAddress: string;
+  const deployOut = await connector.deployContract({
+    keychainId: keychainPlugin.getKeychainId(),
+    contractName: HelloWorldContractJson.contractName,
+    contractAbi: HelloWorldContractJson.abi,
+    constructorArgs: [],
+    web3SigningCredential: {
+      secret: privateKey,
+      type: Web3SigningCredentialType.PrivateKeyHex,
+    },
+    bytecode: HelloWorldContractJson.bytecode,
+    gas: 10000000,
+    privateTransactionConfig: {
+      privateFor: privateFor, // Node 2
+      privateFrom: privateFrom, // Node 1
+    },
+  });
 
-  // test("deploys contract via .json file", async (t2: Test) => {
-  //   const deployOut: RunTransactionResponse = await connector.deployContract({
-  //     keychainId: keychainPlugin.getKeychainId(),
-  //     contractName: HelloWorldContractJson.contractName,
-  //     contractAbi: HelloWorldContractJson.abi,
-  //     constructorArgs: [],
-  //     web3SigningCredential: {
-  //       secret: privateKey,
-  //       type: Web3SigningCredentialType.PrivateKeyHex,
-  //     },
-  //     bytecode: HelloWorldContractJson.bytecode,
-  //     gas: 10000000,
-  //     privateTransactionConfig: {
-  //       privateFor: privateFor, // Node 2
-  //       privateFrom: privateFrom, // Node 1
-  //     },
-  //   });
+  console.log(deployOut);
 
-  // console.log(deployOut);
-  // contractAddress = "0x978c68b8a18066416e29e372e604f2b6d45550c5";
+  const contractAddress = deployOut.transactionReceipt
+    .contractAddress as string;
 
-  // const receipt = await connector.invokeContract({
-  //   contractName: HelloWorldContractJson.contractName,
-  //   contractAbi: HelloWorldContractJson.abi,
-  //   contractAddress,
-  //   keychainId: keychainPlugin.getKeychainId(),
-  //   invocationType: EthContractInvocationType.Send,
-  //   methodName: "setName",
-  //   gas: 10000000,
-  //   params: ["Travis"],
-  //   signingCredential: {
-  //     secret: privateKey,
-  //     type: Web3SigningCredentialType.PrivateKeyHex,
-  //   },
-  //   privateTransactionConfig: {
-  //     privateFor: privateFor,
-  //     privateFrom: privateFrom,
-  //   },
-  // });
+  const receipt = await connector.invokeContract({
+    contractName: HelloWorldContractJson.contractName,
+    contractAbi: HelloWorldContractJson.abi,
+    contractAddress,
+    keychainId: keychainPlugin.getKeychainId(),
+    invocationType: EthContractInvocationType.Send,
+    methodName: "setName",
+    gas: 10000000,
+    params: ["Travis"],
+    signingCredential: {
+      secret: privateKey,
+      type: Web3SigningCredentialType.PrivateKeyHex,
+    },
+    privateTransactionConfig: {
+      privateFor: privateFor,
+      privateFrom: privateFrom,
+    },
+  });
 
-  // console.log(receipt);
+  console.log(receipt);
 
   const getName = await connector.invokeContract({
     contractName: HelloWorldContractJson.contractName,
@@ -154,10 +153,10 @@ test(testCase, async (t: Test) => {
       secret: privateKey,
       type: Web3SigningCredentialType.PrivateKeyHex,
     },
-    // privateTransactionConfig: {
-    //   privateFor: privateFor,
-    //   privateFrom: privateFrom,
-    // },
+    privateTransactionConfig: {
+      privateFor: privateFor,
+      privateFrom: privateFrom,
+    },
   });
 
   console.log(getName);

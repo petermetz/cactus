@@ -8,7 +8,9 @@ import { promisify } from "util";
 import { Optional } from "typescript-optional";
 
 import Web3 from "web3";
-import { AbiItem } from "web3-utils";
+import type { AbiItem } from "web3-utils";
+import type { WebsocketProvider } from "web3-core";
+import EEAClient, { IWeb3InstanceExtended } from "web3-eea";
 
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import { TransactionReceipt } from "web3-eth";
@@ -73,11 +75,9 @@ import {
   IGetPrometheusExporterMetricsEndpointV1Options,
 } from "./web-services/get-prometheus-exporter-metrics-endpoint-v1";
 import { WatchBlocksV1Endpoint } from "./web-services/watch-blocks-v1-endpoint";
+import { RuntimeError } from "run-time-error";
 
 export const E_KEYCHAIN_NOT_FOUND = "cactus.connector.besu.keychain_not_found";
-
-const EEAClient = require("web3-eea");
-// const PrivateTransaction = require("web3-eea/src/privateTransaction");
 
 export interface IPluginLedgerConnectorBesuOptions
   extends ICactusPluginOptions {
@@ -101,8 +101,9 @@ export class PluginLedgerConnectorBesu
   private readonly instanceId: string;
   public prometheusExporter: PrometheusExporter;
   private readonly log: Logger;
+  private readonly web3Provider: WebsocketProvider;
   private readonly web3: Web3;
-  private web3EEA: any;
+  private web3EEA: IWeb3InstanceExtended | undefined;
   private readonly pluginRegistry: PluginRegistry;
   private contracts: {
     [name: string]: Contract;
@@ -129,10 +130,10 @@ export class PluginLedgerConnectorBesu
     const label = this.className;
     this.log = LoggerProvider.getOrCreate({ level, label });
 
-    const web3WsProvider = new Web3.providers.WebsocketProvider(
+    this.web3Provider = new Web3.providers.WebsocketProvider(
       this.options.rpcApiWsHost,
     );
-    this.web3 = new Web3(web3WsProvider);
+    this.web3 = new Web3(this.web3Provider);
     this.instanceId = options.instanceId;
     this.pluginRegistry = options.pluginRegistry;
     this.prometheusExporter =
@@ -143,19 +144,19 @@ export class PluginLedgerConnectorBesu
       `${fnTag} options.prometheusExporter`,
     );
 
-    const web3Provider = new Web3.providers.HttpProvider(
-      this.options.rpcApiHttpHost,
-    );
+    // const web3Provider = new Web3.providers.HttpProvider(
+    //   this.options.rpcApiHttpHost,
+    // );
 
-    this.web3 = new Web3(web3Provider);
+    // this.web3 = new Web3(web3Provider);
     this.initializeEEAClient();
 
     this.prometheusExporter.startMetricsCollection();
   }
 
-  public async initializeEEAClient() {
+  public async initializeEEAClient(): Promise<void> {
     const chainId = await this.web3.eth.getChainId();
-    this.web3EEA = new EEAClient(this.web3, chainId);
+    this.web3EEA = EEAClient(this.web3, chainId);
   }
 
   public getPrometheusExporter(): PrometheusExporter {
@@ -182,6 +183,7 @@ export class PluginLedgerConnectorBesu
       const server = serverMaybe.get();
       await promisify(server.close.bind(server))();
     }
+    this.web3Provider.disconnect(1000, "Shutting down...");
   }
 
   async registerWebServices(
@@ -505,7 +507,9 @@ export class PluginLedgerConnectorBesu
     }
 
     const txHash = await this.web3EEA?.eea.sendRawTransaction(options);
-
+    if (!txHash) {
+      throw new RuntimeError(`eea.sendRawTransaction provided no tx hash.`);
+    }
     return this.getPrivateTxReceipt(options.privateFrom, txHash);
   }
 
@@ -517,6 +521,9 @@ export class PluginLedgerConnectorBesu
       txHash,
       privateFrom,
     );
+    if (!txPoolReceipt) {
+      throw new RuntimeError(`priv.getTransactionReceipt provided no receipt.`);
+    }
 
     return { transactionReceipt: txPoolReceipt };
   }
