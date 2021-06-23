@@ -56,9 +56,10 @@ import {
   Web3SigningCredentialCactusKeychainRef,
   Web3SigningCredentialPrivateKeyHex,
   Web3SigningCredentialType,
-} from "./generated/openapi/typescript-axios/";
+  GetBlockV1Request,
+  GetBlockV1Response,
+} from "./generated/openapi/typescript-axios/index";
 
-import { RunTransactionEndpoint } from "./web-services/run-transaction-endpoint";
 import { InvokeContractEndpoint } from "./web-services/invoke-contract-endpoint";
 import { isWeb3SigningCredentialNone } from "./model-type-guards";
 import { BesuSignTransactionEndpointV1 } from "./web-services/sign-transaction-endpoint-v1";
@@ -68,11 +69,13 @@ import {
   IGetPrometheusExporterMetricsEndpointV1Options,
 } from "./web-services/get-prometheus-exporter-metrics-endpoint-v1";
 import { WatchBlocksV1Endpoint } from "./web-services/watch-blocks-v1-endpoint";
+import { GetBlockEndpoint } from "./web-services/get-block-v1-endpoint-";
 
 export const E_KEYCHAIN_NOT_FOUND = "cactus.connector.besu.keychain_not_found";
 
 export interface IPluginLedgerConnectorBesuOptions
   extends ICactusPluginOptions {
+  instanceId(instanceId: any, arg1: string);
   rpcApiHttpHost: string;
   rpcApiWsHost: string;
   pluginRegistry: PluginRegistry;
@@ -196,7 +199,7 @@ export class PluginLedgerConnectorBesu
       endpoints.push(endpoint);
     }
     {
-      const endpoint = new RunTransactionEndpoint({
+      const endpoint = new GetBlockEndpoint({
         connector: this,
         logLevel: this.options.logLevel,
       });
@@ -692,5 +695,11 @@ export class PluginLedgerConnectorBesu
     }
 
     return Optional.empty();
+  }
+  public async getBlock(
+    request: GetBlockV1Request,
+  ): Promise<GetBlockV1Response> {
+    const block = await this.web3.eth.getBlock(request.blockHashOrBlockNumber);
+    return { block };
   }
 }

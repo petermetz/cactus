@@ -84,5 +84,11 @@
     "ignorePaths": [
         "node_modules/**",
         "**/build/**"
+    ],
+    "ignoreWords": [
+        "block",
+        "get",
+        "request",
+        "v"
     ]
 }
