@@ -75,7 +75,6 @@ export const E_KEYCHAIN_NOT_FOUND = "cactus.connector.besu.keychain_not_found";
 
 export interface IPluginLedgerConnectorBesuOptions
   extends ICactusPluginOptions {
-  instanceId(instanceId: any, arg1: string);
   rpcApiHttpHost: string;
   rpcApiWsHost: string;
   pluginRegistry: PluginRegistry;

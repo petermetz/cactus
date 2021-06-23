@@ -4,8 +4,6 @@ import { v4 as uuidv4 } from "uuid";
 import { createServer } from "http";
 import KeyEncoder from "key-encoder";
 import { AddressInfo } from "net";
-import Web3 from "web3";
-import EEAClient, { IWeb3InstanceExtended } from "web3-eea";
 
 import {
   ApiServer,
@@ -28,6 +26,7 @@ import {
   BesuApiClient,
   IPluginLedgerConnectorBesuOptions,
   PluginLedgerConnectorBesu,
+  GetBlockV1Request,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 
 import { PluginRegistry } from "@hyperledger/cactus-core";
@@ -124,40 +123,15 @@ test(testCase, async (t: Test) => {
   // 7. Instantiate the main SDK dynamically with whatever port the API server ended up bound to (port 0)
   t.comment(`AddressInfo: ${JSON.stringify(addressInfo1)}`);
 
-  const web3Provider = new Web3.providers.HttpProvider(rpcApiHttpHost);
-  const web3 = new Web3(web3Provider);
-  const web3Eea: IWeb3InstanceExtended = EEAClient(web3, 2018);
-
-  const orionKeyPair = await besuTestLedger.getOrionKeyPair();
-  const besuKeyPair = await besuTestLedger.getBesuKeyPair();
-
-  const besuPrivateKey = besuKeyPair.privateKey.toLowerCase().startsWith("0x")
-    ? besuKeyPair.privateKey.substring(2)
-    : besuKeyPair.privateKey; // besu node's private key
-
-  const contractOptions = {
-    data: `0x123`,
-    // privateFrom : Orion public key of the sender.
-    privateFrom: orionKeyPair.publicKey,
-    // privateFor : Orion public keys of recipients or privacyGroupId: Privacy group to receive the transaction
-    privateFor: [orionKeyPair.publicKey],
-    // privateKey: Ethereum private key with which to sign the transaction.
-    privateKey: besuPrivateKey,
-  };
-
-  const transactionHash = await web3Eea.eea.sendRawTransaction(contractOptions);
-
   const request: GetBlockV1Request = {
-    keychainId,
-    keychainRef,
-    transactionHash: transactionHash,
+    blockHashOrBlockNumber: 0,
   };
 
   const configuration = new BesuApiClientOptions({ basePath: node1Host });
   const api = new BesuApiClient(configuration);
 
   // Test for 200 valid response test case
-  const res = await api.apiV1BesuRunTransaction(request);
+  const res = await api.getBlockV1(request);
 
   const { status, data } = res;
   t.true(status >= 200, "status GTE 200 OK");
