@@ -1,8 +1,8 @@
-import test, { Test } from "tape-promise/tape";
+import test from "ava";
+import type { ExecutionContext } from "ava";
 
 import * as apiSurface from "../../../main/typescript/public-api";
 
-test("Library can be loaded", (t: Test) => {
-  t.ok(apiSurface, "apiSurface truthy OK");
-  t.end();
+test("Library can be loaded", async (t: ExecutionContext) => {
+  t.truthy(apiSurface, "apiSurface truthy OK");
 });
