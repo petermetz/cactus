@@ -1,0 +1,75 @@
+name: Build Containers
+
+# Triggers the workflow on push or pull request events
+on:
+  push:
+    branches: [main, dev]
+
+jobs:
+  build-containers:
+    runs-on: ubuntu-20.04
+    steps:
+
+# ./.devcontainer/Dockerfile
+
+# ./examples/supply-chain-app/Dockerfile
+# ./examples/carbon-accounting/Dockerfile
+# ./examples/cactus-example-carbon-accounting-backend/src/utility-emissions-channel/typescript/Dockerfile
+
+# ./packages/cactus-cmd-api-server/Dockerfile
+
+# ./packages/cactus-plugin-keychain-vault/src/cactus-keychain-vault-server/Dockerfile
+# ./packages/cactus-plugin-ledger-connector-corda/src/main-server/Dockerfile
+# ./packages/cactus-plugin-ledger-connector-fabric/Dockerfile
+# ./packages/cactus-plugin-ledger-connector-besu/Dockerfile
+
+# ./tools/docker/besu-all-in-one/Dockerfile
+# ./tools/docker/quorum-all-in-one/Dockerfile
+# ./tools/docker/corda-all-in-one/Dockerfile
+# ./tools/docker/test-npm-registry/Dockerfile
+# ./tools/docker/rust-compiler/Dockerfile
+
+# ./whitepaper/Dockerfile
+
+    - uses: actions/checkout@v2.3.4
+      name: Check out code
+
+    - name: ghcr.io/hyperledger/cactus-vscode-dev-container
+      uses: mr-smithers-excellent/docker-build-push@v5.5
+      with:
+        image: hyperledger/cactus-vscode-dev-container
+        registry: ghcr.io
+        username: ${{ secrets.GHCR_USERNAME }}
+        password: ${{ secrets.GHCR_TOKEN }} 
+        directory: ./.devcontainer/
+        dockerfile: ./.devcontainer/Dockerfile
+
+    - name: ghcr.io/hyperledger/cactus-fabric2-all-in-one
+      uses: mr-smithers-excellent/docker-build-push@v5.5
+      with:
+        image: hyperledger/cactus-fabric2-all-in-one
+        registry: ghcr.io
+        username: ${{ secrets.GHCR_USERNAME }}
+        password: ${{ secrets.GHCR_TOKEN }} 
+        directory: ./tools/docker/fabric-all-in-one/
+        dockerfile: ./tools/docker/fabric-all-in-one/Dockerfile_v2.x
+
+    - name: ghcr.io/hyperledger/cactus-fabric-all-in-one
+      uses: mr-smithers-excellent/docker-build-push@v5.5
+      with:
+        image: hyperledger/cactus-fabric-all-in-one
+        registry: ghcr.io
+        username: ${{ secrets.GHCR_USERNAME }}
+        password: ${{ secrets.GHCR_TOKEN }} 
+        directory: ./tools/docker/fabric-all-in-one/
+        dockerfile: ./tools/docker/fabric-all-in-one/Dockerfile_v1.4.x
+
+    - name: ghcr.io/hyperledger/cactus-connector-corda-server
+      uses: mr-smithers-excellent/docker-build-push@v5.5
+      with:
+        image: hyperledger/cactus-connector-corda-server
+        registry: ghcr.io
+        username: ${{ secrets.GHCR_USERNAME }}
+        password: ${{ secrets.GHCR_TOKEN }} 
+        directory: ./packages/cactus-plugin-ledger-connector-corda/src/main-server/
+        dockerfile: ./packages/cactus-plugin-ledger-connector-corda/src/main-server/Dockerfile
