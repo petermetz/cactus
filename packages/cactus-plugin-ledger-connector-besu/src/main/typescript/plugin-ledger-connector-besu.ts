@@ -10,7 +10,7 @@ import { Optional } from "typescript-optional";
 import Web3 from "web3";
 import type { AbiItem } from "web3-utils";
 import type { WebsocketProvider } from "web3-core";
-import EEAClient, { IWeb3InstanceExtended } from "web3-eea";
+import EEAClient, { ICallOptions, IWeb3InstanceExtended } from "web3-eea";
 
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import { TransactionReceipt } from "web3-eth";
@@ -355,8 +355,37 @@ export class PluginLedgerConnectorBesu
     const method: ContractSendMethod = methodRef(...req.params);
 
     if (req.invocationType === EthContractInvocationType.Call) {
-      const callOutput = await (method as any).call();
-      const success = true;
+      let callOutput;
+      let success = false;
+      if (req.privateTransactionConfig) {
+        const data = method.encodeABI();
+        const fnParams = {
+          to: contractInstance.options.address,
+          data,
+          privateFrom: req.privateTransactionConfig.privateFrom,
+          // FIXME implement support for the rest of the supported signing credential types where applicable
+          privateKey: (req.signingCredential as any).secret,
+          privateFor: req.privateTransactionConfig.privateFor,
+        };
+        if (!this.web3EEA) {
+          throw new RuntimeError(`InvalidState: web3EEA not initialized.`);
+        }
+
+        const privacyGroupId = this.web3EEA.priv.generatePrivacyGroup(fnParams);
+        this.log.debug("Generated privacyGroupId: ", privacyGroupId);
+        callOutput = await this.web3EEA.priv.call({
+          privacyGroupId,
+          to: contractInstance.options.address,
+          data,
+          // TODO: Update the "from" property of ICallOptions to be optional
+        } as ICallOptions);
+
+        success = true;
+        this.log.debug(`Web3 EEA Call output: `, callOutput);
+      } else {
+        callOutput = await (method as any).call();
+        success = true;
+      }
       return { success, callOutput };
     } else if (req.invocationType === EthContractInvocationType.Send) {
       if (isWeb3SigningCredentialNone(req.signingCredential)) {

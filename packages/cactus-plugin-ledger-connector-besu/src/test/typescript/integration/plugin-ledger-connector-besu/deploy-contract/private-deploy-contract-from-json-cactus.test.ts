@@ -6,6 +6,7 @@ import Web3EEAClient, { IPrivateTransactionReceipt } from "web3-eea";
 import { BesuMpTestLedger } from "@hyperledger/cactus-test-tooling";
 import { LogLevelDesc } from "../../../../../../../cactus-common/node_modules/loglevel";
 import {
+  EthContractInvocationType,
   PluginFactoryLedgerConnector,
   Web3SigningCredentialType,
 } from "../../../../../main/typescript";
@@ -395,6 +396,50 @@ test(testCase, async (t: Test) => {
     );
     t.comment(`Transaction receipt for set() call: ${JSON.stringify(result)}`);
     t.ok(result, "set() result for member 3 truthy OK");
+  }
+
+  {
+    t.comment("Checking that private contract cannot be called anonymously");
+    const contractInvocationNoPrivTxConfig = connector1.invokeContract({
+      contractName: HelloWorldContractJson.contractName,
+      contractAbi: HelloWorldContractJson.abi,
+      contractAddress: contractDeployReceipt.contractAddress,
+      invocationType: EthContractInvocationType.Call,
+      gas: 3000000,
+      methodName: "getName",
+      params: [],
+      signingCredential: {
+        secret: "incorrect-secret",
+        type: Web3SigningCredentialType.PrivateKeyHex,
+      },
+    });
+    await t.rejects(
+      contractInvocationNoPrivTxConfig,
+      /Returned values aren't valid, did it run Out of Gas\? You might also see this error if you are not using the correct ABI for the contract you are retrieving data from, requesting data from a block number that does not exist, or querying a node which is not fully synced\./,
+      "private contract call fails without Besu member credentials OK",
+    );
+  }
+
+  {
+    t.comment("Checking if member3 can call getName() via connector");
+    const res = await connector1.invokeContract({
+      contractName: HelloWorldContractJson.contractName,
+      contractAbi: HelloWorldContractJson.abi,
+      contractAddress: contractDeployReceipt.contractAddress,
+      invocationType: EthContractInvocationType.Call,
+      gas: 3000000,
+      methodName: "getName",
+      params: [],
+      privateTransactionConfig: {
+        privateFrom: keys.tessera.member1.publicKey,
+        privateFor: [keys.tessera.member3.publicKey],
+      },
+      signingCredential: {
+        secret: keys.besu.member3.privateKey,
+        type: Web3SigningCredentialType.PrivateKeyHex,
+      },
+    });
+    t.ok(res, "getName() by member3 response truthy OK");
   }
 
   t.end();
