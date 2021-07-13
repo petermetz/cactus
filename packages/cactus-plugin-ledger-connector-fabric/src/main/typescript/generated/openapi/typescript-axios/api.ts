@@ -509,6 +509,100 @@ export interface DeploymentTargetOrganization {
 /**
  * 
  * @export
+ * @interface Endorser
+ */
+export interface Endorser {
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof Endorser
+     */
+    chaincodes: Array<string>;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Endorser
+     */
+    connected?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Endorser
+     */
+    connectedAttempted?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Endorser
+     */
+    discovered?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof Endorser
+     */
+    name: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Endorser
+     */
+    mspid?: string;
+    /**
+     * 
+     * @type {EndorserConnectOptions}
+     * @memberof Endorser
+     */
+    options: EndorserConnectOptions;
+}
+/**
+ * 
+ * @export
+ * @interface EndorserConnectOptions
+ */
+export interface EndorserConnectOptions {
+    [key: string]: object | any;
+
+    /**
+     * 
+     * @type {string}
+     * @memberof EndorserConnectOptions
+     */
+    clientCert?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EndorserConnectOptions
+     */
+    pem?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EndorserConnectOptions
+     */
+    url?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EndorserConnectOptions
+     */
+    ssl_target_name_override?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EndorserConnectOptions
+     */
+    hostnameOverride?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof EndorserConnectOptions
+     */
+    requestTimeout?: number;
+}
+/**
+ * 
+ * @export
  * @enum {string}
  */
 export enum FabricContractInvocationType {
@@ -598,6 +692,32 @@ export interface GatewayEventHandlerOptions {
      * @memberof GatewayEventHandlerOptions
      */
     strategy: DefaultEventHandlerStrategy;
+}
+/**
+ * 
+ * @export
+ * @interface GetChannelEndorsersRequestV1
+ */
+export interface GetChannelEndorsersRequestV1 {
+    /**
+     * 
+     * @type {string}
+     * @memberof GetChannelEndorsersRequestV1
+     */
+    mspId?: string;
+}
+/**
+ * 
+ * @export
+ * @interface GetChannelEndorsersResponseV1
+ */
+export interface GetChannelEndorsersResponseV1 {
+    /**
+     * 
+     * @type {Array<Endorser>}
+     * @memberof GetChannelEndorsersResponseV1
+     */
+    endorsers: Array<Endorser>;
 }
 /**
  * 
@@ -794,6 +914,42 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          * 
+         * @summary Obtains the list of endorsers for a given channel on the Fabric ledger.
+         * @param {GetChannelEndorsersRequestV1} getChannelEndorsersRequestV1 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getChannelEndorsersV1: async (getChannelEndorsersRequestV1: GetChannelEndorsersRequestV1, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'getChannelEndorsersRequestV1' is not null or undefined
+            assertParamExists('getChannelEndorsersV1', 'getChannelEndorsersRequestV1', getChannelEndorsersRequestV1)
+            const localVarPath = `/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/get-channel-endorsers`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(getChannelEndorsersRequestV1, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary Get the Prometheus Metrics
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -892,6 +1048,17 @@ export const DefaultApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary Obtains the list of endorsers for a given channel on the Fabric ledger.
+         * @param {GetChannelEndorsersRequestV1} getChannelEndorsersRequestV1 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getChannelEndorsersV1(getChannelEndorsersRequestV1: GetChannelEndorsersRequestV1, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetChannelEndorsersResponseV1>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getChannelEndorsersV1(getChannelEndorsersRequestV1, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
          * @summary Get the Prometheus Metrics
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -940,6 +1107,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          */
         deployContractV1(deployContractV1Request?: DeployContractV1Request, options?: any): AxiosPromise<DeployContractV1Response> {
             return localVarFp.deployContractV1(deployContractV1Request, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Obtains the list of endorsers for a given channel on the Fabric ledger.
+         * @param {GetChannelEndorsersRequestV1} getChannelEndorsersRequestV1 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getChannelEndorsersV1(getChannelEndorsersRequestV1: GetChannelEndorsersRequestV1, options?: any): AxiosPromise<GetChannelEndorsersResponseV1> {
+            return localVarFp.getChannelEndorsersV1(getChannelEndorsersRequestV1, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -992,6 +1169,18 @@ export class DefaultApi extends BaseAPI {
      */
     public deployContractV1(deployContractV1Request?: DeployContractV1Request, options?: any) {
         return DefaultApiFp(this.configuration).deployContractV1(deployContractV1Request, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Obtains the list of endorsers for a given channel on the Fabric ledger.
+     * @param {GetChannelEndorsersRequestV1} getChannelEndorsersRequestV1 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public getChannelEndorsersV1(getChannelEndorsersRequestV1: GetChannelEndorsersRequestV1, options?: any) {
+        return DefaultApiFp(this.configuration).getChannelEndorsersV1(getChannelEndorsersRequestV1, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

@@ -69,6 +69,8 @@ import {
   RunTransactionResponse,
   ChainCodeProgrammingLanguage,
   ChainCodeLifeCycleCommandResponses,
+  GetChannelEndorsersRequestV1,
+  GetChannelEndorsersResponseV1,
 } from "./generated/openapi/typescript-axios/index";
 
 import {
@@ -866,8 +868,18 @@ export class PluginLedgerConnectorFabric
       this.log.debug("transact() gateway connection established OK");
 
       const network = await gateway.getNetwork(channelName);
-      // const channel = network.getChannel();
-      // const endorsers = channel.getEndorsers();
+      const channel = network.getChannel();
+      const endorsers = channel.getEndorsers();
+      console.log("ENDORSER");
+      console.log("=========================");
+      console.log("=========================");
+      console.log("=========================");
+
+      console.log(JSON.stringify(endorsers, null, 4));
+
+      console.log("=========================");
+      console.log("=========================");
+      console.log("=========================");
       const contract = network.getContract(contractName);
 
       let out: Buffer;
@@ -997,5 +1009,16 @@ export class PluginLedgerConnectorFabric
       this.log.error(`enrollAdmin() Failure:`, ex);
       throw new Error(`${fnTag} Exception: ${ex?.message}`);
     }
+  }
+
+  public async getChannelEndorsersV1(
+    req: GetChannelEndorsersRequestV1,
+  ): Promise<GetChannelEndorsersResponseV1> {
+    if (req.mspId) {
+      // TODO add filtering logic here
+    }
+    return {
+      endorsers: [],
+    };
   }
 }

@@ -210,6 +210,93 @@
                     }
                 }
             },
+            "GetChannelEndorsersRequestV1": {
+                "type": "object",
+                "properties": {
+                    "mspId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096,
+                        "nullable": false
+                    }
+                }
+            },
+            "GetChannelEndorsersResponseV1": {
+                "type": "object",
+                "required": ["endorsers"],
+                "properties": {
+                    "endorsers": {
+                        "type": "array",
+                        "nullable": false,
+                        "items": {
+                            "$ref": "#/components/schemas/Endorser"
+                        }
+                    }
+                }
+            },
+            "Endorser": {
+                "type": "object",
+                "required": ["name", "chaincodes", "options"],
+                "properties": {
+                    "chaincodes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4096,
+                            "nullable": false
+                        }
+                    },
+                    "connected": {
+                        "type": "boolean"
+                    },
+                    "connectedAttempted": {
+                        "type": "boolean"
+                    },
+                    "discovered": {
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096,
+                        "nullable": false
+                    },
+                    "mspid": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096,
+                        "nullable": false
+                    },
+                    "options": {
+                        "$ref": "#/components/schemas/EndorserConnectOptions"
+                    }
+                }
+            },
+            "EndorserConnectOptions": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                    "clientCert": {
+                        "type": "string"
+                    },
+                    "pem": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "ssl-target-name-override": {
+                        "type": "string"
+                    },
+                    "hostnameOverride": {
+                        "type": "string"
+                    },
+                    "requestTimeout": {
+                        "type": "number"
+                    }
+                }
+            },
             "FileBase64": {
                 "description": "Represents a file-system file that has a name and a body which holds the file contents as a Base64 encoded string",
                 "type": "object",
@@ -765,6 +852,40 @@
         }
     },
     "paths": {
+        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/get-channel-endorsers": {
+            "post": {
+                "x-hyperledger-cactus": {
+                    "http": {
+                        "verbLowerCase": "post",
+                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/get-channel-endorsers"
+                    }
+                },
+                "operationId": "getChannelEndorsersV1",
+                "summary": "Obtains the list of endorsers for a given channel on the Fabric ledger.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GetChannelEndorsersRequestV1"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetChannelEndorsersResponseV1"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction": {
             "post": {
                 "x-hyperledger-cactus": {
